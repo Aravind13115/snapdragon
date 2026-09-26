@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Qualcomm Snapdragon AMD Premium Brand Ident</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0d17;font-family:'Inter',system-ui,-apple-system,sans-serif;color:#fff}
+canvas{display:block;width:100vw;height:100vh}
+#logo-wrapper{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+#c { width:100vw; height:100vh; display:block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="logo-wrapper"></div>
+<script>
+(() => {
+  // ==== OFFICIAL SVG LOGO ASSETS ====
+  const logoUrls = {
+    qualcomm: 'https://cdn.jsdelivr.net/gh/Aravind13115/snapdragon@main/assets/logos/qualcomm.svg',
+    snapdragon: 'https://cdn.jsdelivr.net/gh/Aravind13115/snapdragon@main/assets/logos/snapdragon.svg',
+    amd: 'https://cdn.jsdelivr.net/gh/Aravind13115/snapdragon@main/assets/logos/amd.svg'
+  };
+
+  const loadedImgs = {};
+  function loadLogo(src) {
+    if (loadedImgs[src]) return loadedImgs[src];
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.src = src;
+    img.onload = () => { loadedImgs[src] = img; };
+    return img;
+  }
+
+  // ==== CORE ANIMATION ENGINE ====
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const logoWrapper = document.getElementById('logo-wrapper');
+  let W, H, CX, CY;
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    CX = W / 2; CY = H / 2;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  // ==== LOAD LOGO IMAGES ====
+  const logos = {};
+  let logoLoadCount = 0;
+  const logoLoadTotal = 3;
+  function onLogoLoad() {
+    logoLoadCount++;
+    if (logoLoadCount >= logoLoadTotal) init();
+  }
+  for (const key of ['qualcomm','snapdragon','amd']) {
+    logos[key] = loadLogo(logoUrls[key]);
+    logos[key].addEventListener('load', onLogoLoad);
+  }
+
+  // ==== TIMING & EASING ====
+  const DURATION = 15000;
+  const startTime = performance.now();
+  const lerp = (a,b,t)=>a+(b-a)*t;
+  const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+  const easeOut=t=>1-Math.pow(1-t,3);
+  const easeInOut=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+  const easeIn=t=>t*t*t;
+  const mapRange=(v,lo1,hi1,lo2,hi2)=>lerp(lo2,hi2,clamp((v-lo1)/(hi1-lo1),0,1));
+
+  // ==== PARTICLE ENGINE ====
+  class ParticleSystem {
+    constructor(){this.particles=[];this.emitted=[];}
+    clear(){this.particles=[];this.emitted=[];}
+    emit(x,y,count,config={spread:4,lifetime:2000,size:2,color:'#fff',decay:0.001}){
+      for(let i=0;i<count;i++){
+        const phase=(Math.random()*Math.PI*2);
+        const speed=config.spread*0.5+Math.random()*config.spread;
+        this.particles.push({
+          x:x, y:y,
+          vx:Math.cos(phase)*speed,
+          vy:Math.sin(phase)*speed,
+          life:0,
+          maxLife:config.lifetime,
+          size:config.size*0.5+Math.random()*config.size,
+          color:config.color,
+          opacity:1,
+          decay:config.decay||0.001
+        });
+        this.emitted.push({x:x, y:y, phase, born:performance.now()});
+      }
+    }
+    update(now,dt){
+      // Emit new particles over time based on emitted positions
+      const elapsed=now-startTime;
+      if (elapsed>3000&&elapsed<7000){
+        const t=mapRange(elapsed,3000,7000,0,1);
+        if(Math.random()<0.15){
+          const px=CX+Math.random()*W*0.4;
+          const py=CY+Math.random()*H*0.4;
+          this.emit(px,py,1,{spread:2,lifetime:1200,size:1,color:'#ff6b35'});
+        }
+      }
+      for(let i=this.particles.length-1;i>=0;i--){
+        const p=this.particles[i];
+        p.life+=dt;
+        const t=p.life/p.maxLife;
+        if(t>=1){this.particles.splice(i,1);continue;}
+        p.opacity=1-t;
+        p.x+=p.vx*dt*0.06;
+        p.y+=p.vy*dt*0.06;
+        p.vx*=0.98;p.vy*=0.98;
+        p.decay=0.99;
+      }
+    }
+    draw(){
+      this.particles.forEach(p=>{
+        if(p.opacity<=0)return;
+        ctx.save();
+        ctx.globalAlpha=p.opacity*0.6;
+        ctx.fillStyle=p.color;
+        ctx.shadowColor=p.color;
+        ctx.shadowBlur=p.size*3;
+        ctx.beginPath();
+        ctx.arc(p.x,p.y,p.size,0,Math.PI*2);
+        ctx.fill();
+        ctx.restore();
+      });
+    }
+  }
+  const particles=new ParticleSystem();
+
+  // ==== NPU / CIRCUIT LINES ====
+  class CircuitSystem {
+    constructor(){this.lines=[];this.points=[];}
+    reset(){this.lines=[];this.points=[];}
+    addLine(x1,y1,x2,y2,color,width){
+      this.lines.push({x1,y1,x2,y2,color,width,progress:0,speed:0.008});
+    }
+    update(now,dt){
+      this.lines.forEach(l=>{l.progress+=l.speed*dt*0.06;});
+      this.lines=this.lines.filter(l=>l.progress<1);
+    }
+    draw(){
+      this.lines.forEach(l=>{
+        const p=easeOut(l.progress);
+        const sx=lerp(l.x1,l.x2,p),sy=lerp(l.y1,l.y2,p);
+        ctx.save();
+        ctx.strokeStyle=l.color;
+        ctx.lineWidth=l.width*easeOut(p);
+        ctx.globalAlpha=0.4*(1-p);
+        ctx.shadowColor=l.color;
+        ctx.shadowBlur=6;
+        ctx.beginPath();
+        ctx.moveTo(l.x1,l.y1);
+        ctx.lineTo(sx,sy);
+        ctx.stroke();
+        ctx.restore();
+      });
+    }
+  }
+  const circuit=new CircuitSystem();
+
+  // ==== QUALCOMM REVEAL (0-3s) ====
+  function qualcommSection(now){
+    const t=mapRange(now,0,3000,0,1);
+    // Dark background, subtle particles
+    ctx.fillStyle='rgba(10,13,23,1)';
+    ctx.fillRect(0,0,W,H);
+    // Subtle circuit lines
+    if (t>0.3) circuit.addLine(CX-100,CY,CX-40,CY,'rgba(196,18,48,0.3)',1);
+    if (t>0.5) circuit.addLine(CX+40,CY,CX+100,CY,'rgba(196,18,48,0.3)',1);
+    circuit.update(now,dt);
+    circuit.draw();
+    // Particles
+    if (t>0.2) particles.emit(CX,CY,1,{spread:3,lifetime:1500,size:1.5,color:'#c41230'});
+    particles.update(now,dt);
+    particles.draw();
+    // Qualcomm wordmark reveal
+    const qOpac=easeOut(clamp((t-0.6)/0.4,0,1));
+    const qScale=lerp(0,1.2,easeOut(clamp((t-0.8)/0.3,0,1)));
+    if (logos.qualcomm&&logos.qualcomm.complete){
+      ctx.save();
+      ctx.globalAlpha=qOpac;
+      ctx.shadowColor='#c41230';
+      ctx.shadowBlur=20*qOpac;
+      const img=logos.qualcomm;
+      const aspect=img.width/img.height;
+      const base=80;
+      ctx.drawImage(img,CX-base/2,CY-base/2*aspect,base*aspect,base);
+      ctx.restore();
+    }
+    // Hold
+    if (t>0.95) {
+      ctx.fillStyle='rgba(196,18,48,0.1)';
+      ctx.fillRect(0,0,W,H);
+    }
+  }
+
+  // ==== SNAPDRAGON REVEAL (3-7s) ====
+  function snapdragonSection(now){
+    const t=mapRange(now,3000,7000,0,1);
+    // Transition sweep
+    if (t<0.1) {
+      ctx.fillStyle='rgba(228,0,43,0.03)';
+      ctx.fillRect(0,0,W,H);
+    }
+    // Dark background
+    ctx.fillStyle='rgba(10,13,23,1)';
+    ctx.fillRect(0,0,W,H);
+    // Circular energy trails
+    const phase=Math.sin((t-0.2)*Math.PI*2)*0.5+0.5;
+    const orbitCount=6;
+    for(let i=0;i<orbitCount;i++){
+      const ang=(i/orbitCount)*Math.PI*2+phase*Math.PI;
+      const r=60+Math.sin(t*0.003+i)*20;
+      const x=CX+Math.cos(ang)*r;
+      const y=CY+Math.sin(ang)*r*0.6;
+      ctx.save();
+      ctx.strokeStyle=`rgba(228,0,43,${0.6*phase})`;
+      ctx.lineWidth=2;
+      ctx.globalAlpha=0.8;
+      ctx.beginPath();
+      ctx.arc(x,y,8,0,Math.PI*2);
+      ctx.stroke();
+      ctx.restore();
+      // Particle arcs
+      ctx.beginPath();
+      ctx.moveTo(CX,CY);
+      ctx.arc(CX,CY, r*0.7, Math.PI, Math.PI+((t-0.3)*Math.PI*0.8));
+      ctx.strokeStyle=`rgba(255,107,53,${0.4*phase})`;
+      ctx.lineWidth=1.5;
+      ctx.globalAlpha=0.6;
+      ctx.stroke();
+    }
+    // Snapdragon fireball
+    const fbOpacity=easeOut(clamp((t-0.5)/0.5,0,1));
+    if (logos.snapdragon&&logos.snapdragon.complete){
+      ctx.save();
+      ctx.globalAlpha=fbOpacity;
+      ctx.shadowColor='#e4002b';
+      ctx.shadowBlur=30*fbOpacity;
+      const img=logos.snapdragon;
+      const aspect=img.width/img.height;
+      const base=70;
+      ctx.drawImage(img,CX-base/2,CY-base/2*aspect,base*aspect,base);
+      ctx.restore();
+    }
+    // Orbiting energy
+    if (t>0.4&&t<0.8){
+      for(let i=0;i<4;i++){
+        const a=(t*0.5+i*Math.PI/2);
+        const r=30+Math.sin(t*0.3+i)*10;
+        ctx.save();
+        ctx.strokeStyle=`rgba(255,107,53,0.3)`;
+        ctx.lineWidth=1;
+        ctx.globalAlpha=0.5;
+        ctx.beginPath();
+        ctx.arc(CX,CY,r,0,Math.PI*2);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+    // Hold
+    if (t>0.92) {
+      ctx.fillStyle='rgba(228,0,43,0.05)';
+      ctx.fillRect(0,0,W,H);
+    }
+  }
+
+  // ==== AMD REVEAL (7-10s) ====
+  function amdSection(now){
+    const t=mapRange(now,7000,10000,0,1);
+    // Geometric planes
+    ctx.fillStyle='rgba(10,13,23,1)';
+    ctx.fillRect(0,0,W,H);
+    // Angular motion
+    const planeCount=6;
+    for(let i=0;i<planeCount;i++){
+      const angle=(i/planeCount)*Math.PI*2+t*0.5;
+      const size=20+Math.sin(t*1.5+i)*10;
+      const px=CX+Math.cos(angle)*50;
+      const py=CY+Math.sin(angle)*50;
+      ctx.save();
+      ctx.strokeStyle='rgba(237,28,36,0.4)';
+      ctx.lineWidth=1.5;
+      ctx.globalAlpha=0.5;
+      ctx.beginPath();
+      ctx.moveTo(px-size,py);
+      ctx.lineTo(px+size,py);
+      ctx.moveTo(px,py-size);
+      ctx.lineTo(px,py+size);
+      ctx.stroke();
+      ctx.restore();
+    }
+    // AMD arrow/logo mark
+    const amdOpacity=easeOut(clamp((t-0.6)/0.4,0,1));
+    if (logos.amd&&logos.amd.complete){
+      ctx.save();
+      ctx.globalAlpha=amdOpacity;
+      ctx.shadowColor='#ed1c24';
+      ctx.shadowBlur=15*amdOpacity;
+      const img=logos.amd;
+      const aspect=img.width/img.height;
+      const base=60;
+      ctx.drawImage(img,CX-base/2,CY-base/2*aspect,base*aspect,base);
+      ctx.restore();
+    }
+    // Red accent sweep
+    if (t>0.75){
+      const sweepX=lerp(-W*0.2,W*0.2,(t-0.75)/0.25);
+      ctx.fillStyle=`rgba(237,28,36,${0.3*(t-0.75)/0.25})`;
+      ctx.fillRect(sweepX-50,0,sweepX+50,H);
+    }
+    // Hold
+    if (t>0.95) {
+      ctx.fillStyle='rgba(237,28,36,0.05)';
+      ctx.fillRect(0,0,W,H);
+    }
+  }
+
+  // ==== AI COMPUTE ECOSYSTEM (10-15s) ====
+  function aiEcosystemSection(now){
+    const t=mapRange(now,10000,15000,0,1);
+    // Pull back dark environment
+    ctx.fillStyle='rgba(10,13,23,1)';
+    ctx.fillRect(0,0,W,H);
+    // Thin data/compute lines connecting three areas
+    const logosPos=[{x:CX-120,y:CY,key:'qualcomm'},{x:CX,y:CY,key:'snapdragon'},{x:CX+120,y:CY,key:'amd'}];
+    logosPos.forEach((pos,i)=>{
+      const p=easeInOut(clamp((t-0.3)/0.5,0,1));
+      ctx.strokeStyle=`rgba(255,255,255,${0.2*p})`;
+      ctx.lineWidth=1;
+      ctx.globalAlpha=0.2;
+      ctx.beginPath();
+      ctx.moveTo(pos.x,CY);
+      ctx.lineTo(pos.x+ (i==1?0:(i==2?120:-120)),CY);
+      ctx.stroke();
+      ctx.globalAlpha=1;
+    });
+    // Three logos at positions
+    logosPos.forEach(pos=>{
+      const key=pos.key;
+      if (logos[key]&&logos[key].complete){
+        ctx.save();
+        ctx.translate(pos.x,CY);
+        ctx.globalAlpha=0.8;
+        ctx.drawImage(logos[key],-60,0,120,60*logos[key].height/logos[key].width);
+        ctx.restore();
+      }
+    });
+    // Center title
+    if (t>0.5){
+      ctx.fillStyle='rgba(255,255,255,0.4)';
+      ctx.font='bold 24px Inter';
+      ctx.textAlign='center';
+      ctx.fillText('AI COMPUTE ECOSYSTEM',CX,CY+40);
+      ctx.fillStyle='rgba(255,255,255,0.2)';
+      ctx.font='12px Inter';
+      ctx.fillText('AI • COMPUTE • EDGE • ACCELERATION',CX,CY+65);
+    }
+    // Fade out
+    if (t>0.85){
+      ctx.fillStyle='rgba(0,0,0,1)';
+      ctx.fillRect(0,0,W,H);
+    }
+  }
+
+  // ==== MAIN LOOP ====
+  let lastTime=startTime;
+  function loop(now){
+    const dt=Math.min(50,now-lastTime);
+    lastTime=now;
+
+    // Scene transition
+    if (now<3000) qualcommSection(now);
+    else if (now<7000) snapdragonSection(now);
+    else if (now<10000) amdSection(now);
+    else aiEcosystemSection(now);
+
+    // FPS measure
+    ctx.fillStyle='rgba(255,255,255,0.05)';
+    ctx.font='10px Inter';
+    ctx.fillText(`FPS: ${Math.round(1000/DT)}`,10,20);
+
+    requestAnimationFrame(loop);
+  }
+  // Polyfill for DT
+  let DT=0;
+  requestAnimationFrame(function tick(){
+    DT=performance.now();
+    requestAnimationFrame(tick);
+  });
+
+  // Start
+  ctx.fillStyle='#0a0d17';
+  ctx.fillRect(0,0,W,H);
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
