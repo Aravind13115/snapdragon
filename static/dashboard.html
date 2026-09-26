@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Snapdragon AI Smart Process Manager</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>Snapdragon AI Smart Process Manager <span id="aistatus" style="color:#3fb950">● AI OPTIMIZATION ACTIVE</span></h1>
+  <span class="badge real">REAL telemetry</span>
+  <span class="badge real">REAL ONNX predictions</span>
+  <span class="badge off">NO process modification</span>
+  <button id="estop" title="Disable simulation/recommendation flow. Monitoring continues.">STOP AI OPTIMIZATION</button>
+  <span id="clock" style="margin-left:auto;color:#8b949e"></span>
+</header>
+<div id="stopbanner" class="demo-banner" hidden>STOP AI OPTIMIZATION is ON — monitoring only, simulation flow disabled</div>
+<div id="demoBanner" class="demo-banner" hidden>DEMO DATA — synthetic processes, real model predictions</div>
+<div id="strip" class="strip"></div>
+<main>
+  <div class="card">
+    <h2>Snapdragon AI Engine</h2>
+    <div id="aiengine">loading…</div>
+  </div>
+  <div class="card">
+    <h2>AI Workload Analysis</h2>
+    <div id="summary">loading…</div>
+  </div>
+  <div class="card">
+    <h2>Platform <span class="badge real">real</span></h2>
+    <div id="platform">loading…</div>
+  </div>
+  <div class="card">
+    <h2>CPU / Memory <span class="badge real">real</span></h2>
+    <div class="big" id="cpuBig">–</div>
+    <div class="bar"><div id="cpuBar"></div></div>
+    <div id="memLine">–</div>
+    <div class="bar"><div id="memBar"></div></div>
+    <div id="misc">–</div>
+  </div>
+  <div class="card">
+    <h2>Backends</h2>
+    <div id="backends">loading…</div>
+  </div>
+  <div class="card">
+    <h2>Snapdragon Validation</h2>
+    <div id="npuval">loading…</div>
+  </div>
+  <div class="card">
+    <h2>Safety <span class="badge real">enforced</span></h2>
+    <div id="safety">loading…</div>
+  </div>
+  <div class="card wide">
+    <h2>AI Process Table <span class="badge real">real CPU</span> <span class="badge real">real AI class</span></h2>
+    <div class="controls">
+      <select id="sort"><option value="cpu">sort: CPU</option><option value="mem">sort: MEM</option></select>
+      <select id="limit"><option value="25">25 rows</option><option value="50" selected>50 rows</option><option value="100">100 rows</option></select>
+      <select id="demo"><option value="">live processes</option><option value="presentation">demo: presentation</option><option value="gaming">demo: gaming</option><option value="battery">demo: battery</option><option value="idle">demo: idle</option><option value="workload">demo: workload (SIMULATED)</option></select>
+      <button id="refresh">Refresh now</button>
+      <span id="pcount" style="color:#8b949e;margin-left:auto"></span>
+    </div>
+    <table><thead><tr><th>Process</th><th>Arch</th><th>CPU%</th>
+    <th>Model vote</th><th>Familiarity</th><th>Safety decision</th><th>Why?</th></tr></thead>
+    <tbody id="procs"></tbody></table>
+  </div>
+  <div class="card wide">
+    <h2>AI Optimization Center <span class="badge sim">DEMO SIMULATION</span></h2>
+    <div class="controls">
+      <select id="scenario">
+        <option value="presentation">scenario: presenting (PowerPoint)</option>
+        <option value="sync">scenario: background sync (SIMULATED)</option>
+        <option value="active">scenario: active game (SIMULATED)</option>
+        <option value="uncertain">scenario: uncertain workload (SIMULATED)</option>
+        <option value="critical">scenario: system critical (SIMULATED)</option>
+        <option value="workload">scenario: centroid workload (SIMULATED)</option>
+      </select>
+      <button id="startdemo">START DEMO</button>
+    </div>
+    <div id="optcenter">loading…</div>
+    <div id="simcards" class="simgrid"></div>
+    <div id="simstage"></div>
+  </div>
+  <div class="card wide">
+    <h2>AI Decision History <span class="badge real">logged</span> <span class="badge off">recommendations only</span></h2>
+    <div id="decisions">loading…</div>
+  </div>
+  <div class="card wide">
+    <h2>Dry-run plan <span class="badge off">executes nothing</span></h2>
+    <div id="plan">loading…</div>
+  </div>
+</main>
+<footer>Phase 2 contract: telemetry → features → ONNX → classification → recommendation text only.
+No terminate / suspend / priority API exists in the codebase.</footer>
+<script src="app.js"></script>
+</body>
+</html>

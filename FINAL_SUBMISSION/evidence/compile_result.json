@@ -1,0 +1,27 @@
+{
+  "final": {
+    "job_id": "jp0m9yd0g",
+    "status": "SUCCESS",
+    "device": "Snapdragon X Elite CRD",
+    "runtime": "onnx (--target_runtime onnx --truncate_64bit_io)",
+    "model": "models/process_classifier.onnx",
+    "input_specs": {
+      "features": [
+        1,
+        11
+      ]
+    },
+    "also_successful": [
+      "jgzlye845"
+    ]
+  },
+  "link": {
+    "job_id": "j568m6rng",
+    "status": "SUCCESS"
+  },
+  "historical_failed_attempts": {
+    "jpe7xj015": "int64 label output, flag missing (fixed)",
+    "jpyo29e75": "int64 label output, flag missing (fixed)"
+  },
+  "note": "Derived from live Hub records, not hand-written."
+}

@@ -1,0 +1,42 @@
+{
+  "jp0m9yd0g": {
+    "status": "JobStatus\n---------\ncode    : SUCCESS\nmessage : \n",
+    "type": "CompileJob"
+  },
+  "jgzlye845": {
+    "status": "JobStatus\n---------\ncode    : SUCCESS\nmessage : \n",
+    "type": "CompileJob"
+  },
+  "j568m6rng": {
+    "status": "JobStatus\n---------\ncode    : SUCCESS\nmessage : \n",
+    "type": "LinkJob"
+  },
+  "jpxlrj1lp": {
+    "status": "JobStatus\n---------\ncode    : SUCCESS\nmessage : \n",
+    "type": "ProfileJob"
+  },
+  "jpe7xj015": {
+    "status": "JobStatus\n---------\ncode    : FAILED\nmessage : Must use --truncate_64bit_io when output tensors have type int64.\n",
+    "type": "CompileJob"
+  },
+  "jpyo29e75": {
+    "status": "JobStatus\n---------\ncode    : FAILED\nmessage : Must use --truncate_64bit_io when output tensors have type int64.\n",
+    "type": "CompileJob"
+  },
+  "jgly8jn85": {
+    "status": "JobStatus\n---------\ncode    : FAILED\nmessage : \n",
+    "type": "LinkJob"
+  },
+  "jgolwjyxg": {
+    "status": "JobStatus\n---------\ncode    : FAILED\nmessage : \n",
+    "type": "CompileJob"
+  },
+  "jprldzr9p": {
+    "status": "JobStatus\n---------\ncode    : FAILED\nmessage : \n",
+    "type": "CompileJob"
+  },
+  "jg9z26rlp": {
+    "status": "JobStatus\n---------\ncode    : FAILED\nmessage : \n",
+    "type": "LinkJob"
+  }
+}

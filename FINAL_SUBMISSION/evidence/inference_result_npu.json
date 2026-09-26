@@ -1,0 +1,44 @@
+{
+  "job_id": "j5wlrew3p",
+  "status": "SUCCESS",
+  "device": "Snapdragon X Elite CRD",
+  "runtime": "QNN",
+  "rows": {
+    "protected": {
+      "label": 0,
+      "probabilities": [
+        0.837891,
+        4.6e-05,
+        0.014702,
+        0.14624
+      ]
+    },
+    "foreground": {
+      "label": 1,
+      "probabilities": [
+        0.0,
+        0.998535,
+        0.0,
+        0.0
+      ]
+    },
+    "flexible": {
+      "label": 2,
+      "probabilities": [
+        0.0,
+        0.01918,
+        0.979981,
+        1e-06
+      ]
+    },
+    "deferrable": {
+      "label": 3,
+      "probabilities": [
+        0.00086,
+        4e-05,
+        0.00507,
+        0.992676
+      ]
+    }
+  }
+}

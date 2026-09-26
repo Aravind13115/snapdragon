@@ -1,0 +1,7 @@
+# Runtime dependencies (app + ONNX inference)
+psutil>=7.0
+numpy>=2.0
+onnxruntime>=1.20
+
+# Training-only extra (ai/train_model.py; NOT needed to run the app)
+onnx>=1.15
