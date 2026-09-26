@@ -1,0 +1,611 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Snapdragon AI Smart Process &amp; Task Manager — Competition Showcase</title>
+<meta name="description" content="Safety-first AI workload intelligence for Windows on Snapdragon PCs. ONNX model validated on Qualcomm Snapdragon X Elite CRD with Hexagon NPU execution via Qualcomm AI Hub.">
+<link rel="stylesheet" href="styles.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- Mode bar -->
+<div id="modebar" class="modebar" hidden>
+  <span><b id="modename">DEMO MODE</b> — showing captured validation snapshot. No live backend reachable.</span>
+  <span class="modeswitch">
+    <button id="btn-live" title="Use live local backend if reachable">LIVE LOCAL DATA</button>
+    <button id="btn-demo" class="on" title="Use bundled snapshot">DEMO / VALIDATION MODE</button>
+  </span>
+</div>
+
+<!-- Navigation -->
+<header class="topnav">
+  <div class="brand"><span class="dot"></span><span>Snapdragon AI <b>Smart Process Manager</b></span></div>
+  <nav id="nav">
+    <a href="#home" class="active">Home</a>
+    <a href="#dashboard">Live Dashboard</a>
+    <a href="#ai">AI Intelligence</a>
+    <a href="#safety">Safety Engine</a>
+    <a href="#simulator">Simulator</a>
+    <a href="#npu">Snapdragon NPU</a>
+    <a href="#architecture">Architecture</a>
+    <a href="#evidence">Evidence</a>
+    <a href="#journey">Project Journey</a>
+    <a href="#about">About</a>
+  </nav>
+  <div class="backend-pill" id="backend-pill" title="Inference backend status">…</div>
+</header>
+
+<main>
+
+<!-- ============================================================ -->
+<!-- HOME -->
+<!-- ============================================================ -->
+<section id="home" class="hero active">
+  <div class="hero-bg">
+    <div class="hero-glow"></div>
+    <div class="hero-grid-bg"></div>
+  </div>
+  <div class="hero-content">
+    <div class="hero-left">
+      <div class="hero-badge">
+        <span class="pulse-dot"></span>
+        Hackathon Competition Entry · 2026
+      </div>
+      <h1>Snapdragon AI<br><span class="gradient-text">Smart Process &amp; Task Manager</span></h1>
+      <p class="sub">Safety-first AI workload intelligence for Windows on Snapdragon PCs.</p>
+      <p class="desc">A lightweight AI layer that observes system workloads, predicts safe optimization
+      opportunities, understands uncertainty, and protects critical activity through deterministic safety policies.</p>
+      <div class="cta">
+        <button class="primary btn-glow" id="cta-demo">Launch Live Demo</button>
+        <a class="btn-ghost" href="#npu">View NPU Validation</a>
+      </div>
+      <div class="badges">
+        <span class="badge badge-red">11-Feature Model</span>
+        <span class="badge badge-blue">1.9 KB ONNX</span>
+        <span class="badge badge-green">Qualcomm AI Hub Validated</span>
+        <span class="badge badge-purple">Hexagon NPU Verified</span>
+        <span class="badge badge-orange">74/74 Tests Passed</span>
+      </div>
+    </div>
+    <div class="hero-right">
+      <div class="diagram glass hero-diagram">
+        <div class="dnode">Windows 11 on Arm</div>
+        <div class="darrow"></div>
+        <div class="dnode">Snapdragon Platform</div>
+        <div class="darrow"></div>
+        <div class="drow"><span>CPU</span><span>GPU</span><span class="hl">Hexagon NPU</span></div>
+        <div class="darrow"></div>
+        <div class="dnode">AI Workload Intelligence</div>
+        <div class="darrow"></div>
+        <div class="dnode">Safety Engine</div>
+        <div class="darrow"></div>
+        <div class="dnode accent">Optimization Recommendation</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Demo tour bar -->
+  <div class="tourbar glass" id="tourbar" hidden>
+    <div class="tour-progress"><div class="tour-progress-fill" id="tour-progress"></div></div>
+    <b id="tourtitle">3-minute demo</b><span id="tourtext"></span>
+    <button id="tour-next" class="btn-small">Next →</button>
+    <button id="tour-stop" class="btn-small btn-danger">STOP DEMO</button>
+  </div>
+  <div class="tourstart"><button class="primary btn-glow" id="tour-start">START 3-MINUTE DEMO</button></div>
+</section>
+
+<!-- ============================================================ -->
+<!-- LIVE DASHBOARD -->
+<!-- ============================================================ -->
+<section id="dashboard">
+  <div class="section-header">
+    <h2>Live System Dashboard <span class="tag tag-green" id="dash-src">LIVE</span></h2>
+    <p class="lede">Real-time system telemetry and AI-enriched process intelligence.</p>
+  </div>
+  <div class="grid" id="syscards"></div>
+
+  <h3>Platform Information</h3>
+  <div class="cards3" id="platform-cards"></div>
+
+  <h3>Process Intelligence</h3>
+  <div class="controls">
+    <input id="q" placeholder="Filter processes by name...">
+    <select id="fstate">
+      <option value="">All states</option>
+      <option>PROTECT</option>
+      <option>OBSERVE</option>
+      <option>REVIEW</option>
+      <option>OPTIMIZATION CANDIDATE</option>
+    </select>
+    <span id="pcount" class="dim"></span>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Process</th><th>PID</th><th>CPU%</th><th>MEM%</th><th>Arch</th>
+      <th>AI State</th><th>Conf</th><th>Familiarity</th><th>Safety Decision</th></tr></thead>
+      <tbody id="procs"></tbody>
+    </table>
+  </div>
+  <p class="dim small">Click any row to trace it through the AI pipeline.</p>
+</section>
+
+<!-- ============================================================ -->
+<!-- AI INTELLIGENCE -->
+<!-- ============================================================ -->
+<section id="ai">
+  <div class="section-header">
+    <h2>AI Intelligence</h2>
+    <p class="lede">Click a process from the dashboard to trace it through the complete AI pipeline.</p>
+  </div>
+
+  <div class="pipe" id="pipe">
+    <div class="pstep" data-s="0"><b>OBSERVE</b><span>Telemetry</span></div>
+    <div class="pstep" data-s="1"><b>UNDERSTAND</b><span>11 Features</span></div>
+    <div class="pstep" data-s="2"><b>PREDICT</b><span>11→16→8→4</span></div>
+    <div class="pstep" data-s="3"><b>CONFIDENCE / OOD</b><span>Calibrated × Familiarity</span></div>
+    <div class="pstep" data-s="4"><b>SAFETY</b><span>Policy Decides</span></div>
+    <div class="pstep" data-s="5"><b>RECOMMEND</b><span>Text Only</span></div>
+  </div>
+
+  <div class="card trace-card">
+    <h3 id="trace-title">Select a process to trace it through the pipeline</h3>
+    <div id="trace"></div>
+  </div>
+
+  <h3>Model Architecture</h3>
+  <div class="arch-visual">
+    <div class="arch-layer">
+      <div class="arch-box input-box">11 Input Features</div>
+      <div class="arch-detail">cpu_norm · cpu_trend · mem_norm · io_rate · net_level · is_foreground · on_battery · user_activity · arch_native · is_emulated · hist_cpu</div>
+    </div>
+    <div class="arch-connector"></div>
+    <div class="arch-layer">
+      <div class="arch-box">16 Neurons</div>
+      <div class="arch-detail">ReLU Activation</div>
+    </div>
+    <div class="arch-connector"></div>
+    <div class="arch-layer">
+      <div class="arch-box">8 Neurons</div>
+      <div class="arch-detail">ReLU Activation</div>
+    </div>
+    <div class="arch-connector"></div>
+    <div class="arch-layer">
+      <div class="arch-box">4 Outputs</div>
+      <div class="arch-detail">Softmax → ArgMax</div>
+    </div>
+  </div>
+
+  <div class="cards3">
+    <div class="card"><h3>Model</h3><p>11 input features · MLP 11→16→8→4 · ReLU · Softmax · ArgMax · 1.9 KB ONNX · Opset 12</p></div>
+    <div class="card"><h3>Confidence</h3><p>Calibrated probability × familiarity. Raw softmax is never trusted alone. Temperature scaling T=2.0 baked into the ONNX graph.</p></div>
+    <div class="card"><h3>Out-of-Distribution</h3><p><b>KNOWN</b> or <b>UNKNOWN</b> — unfamiliar workloads are protected, never acted on. Centroid-distance familiarity model.</p></div>
+  </div>
+
+  <h3>Training</h3>
+  <div class="cards3">
+    <div class="card"><h3>Pure NumPy / Adam</h3><p>Model implemented using NumPy and exported to a hand-built ONNX graph. No sklearn/scipy dependencies.</p></div>
+    <div class="card"><h3>Synthetic Data</h3><p>87.38% synthetic fit — explicitly NOT real-world accuracy. No label leakage in final training.</p></div>
+    <div class="card"><h3>ONNX Operators</h3><p>Gemm · Relu · Softmax · ArgMax — four operators, 10 nodes, all verified on NPU.</p></div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SAFETY ENGINE -->
+<!-- ============================================================ -->
+<section id="safety">
+  <div class="section-header">
+    <h2>AI Predicts. Safety Decides.</h2>
+    <p class="lede">The system does not directly kill, terminate, suspend, or modify Windows processes.
+    Every action is a simulation or recommendation only.</p>
+  </div>
+
+  <div class="cards4 safety-cards">
+    <div class="card safety-card protect">
+      <div class="safety-icon">&#x1F6E1;</div>
+      <h3>PROTECT</h3>
+      <p>Essential Windows/system activity. Never touched. This is the default under uncertainty.</p>
+      <div class="safety-examples">
+        <span>System-critical process</span>
+        <span>Foreground application</span>
+        <span>Unknown workload</span>
+      </div>
+    </div>
+    <div class="card safety-card observe">
+      <div class="safety-icon">&#x1F441;</div>
+      <h3>OBSERVE</h3>
+      <p>Normal activity requiring monitoring. No action taken, continuous observation.</p>
+      <div class="safety-examples">
+        <span>User-important process</span>
+        <span>Known workload</span>
+      </div>
+    </div>
+    <div class="card safety-card review">
+      <div class="safety-icon">&#x2753;</div>
+      <h3>REVIEW</h3>
+      <p>Uncertain or unfamiliar workload. Low familiarity increases caution.</p>
+      <div class="safety-examples">
+        <span>New/unfamiliar process</span>
+        <span>Low confidence score</span>
+      </div>
+    </div>
+    <div class="card safety-card candidate">
+      <div class="safety-icon">&#x2705;</div>
+      <h3>OPTIMIZATION CANDIDATE</h3>
+      <p>Safe recommendation opportunity — simulation only. Never destructive.</p>
+      <div class="safety-examples">
+        <span>Known safe flexible background</span>
+        <span>High confidence + high familiarity</span>
+      </div>
+    </div>
+  </div>
+
+  <h3>Safety Pipeline</h3>
+  <div class="safety-pipeline">
+    <div class="sp-step"><b>MODEL PREDICTION</b><span>What the neural network thinks</span></div>
+    <div class="sp-arrow">→</div>
+    <div class="sp-step"><b>CALIBRATED CONFIDENCE</b><span>Temperature-scaled probability</span></div>
+    <div class="sp-arrow">→</div>
+    <div class="sp-step"><b>FAMILIARITY / OOD</b><span>Centroid distance check</span></div>
+    <div class="sp-arrow">→</div>
+    <div class="sp-step"><b>FINAL SAFETY DECISION</b><span>Deterministic policy</span></div>
+  </div>
+
+  <div class="card">
+    <h3>Safety Principles</h3>
+    <ul class="safety-principles">
+      <li>Uncertainty causes <b>more caution</b>, not more aggressive optimization.</li>
+      <li>A real workload receiving zero optimization candidates is acceptable.</li>
+      <li>Model vote vs final decision are separate in code, API, UI, and logs.</li>
+      <li>Zero process-control code paths (audited).</li>
+      <li>Reversible by design — actions exist only as simulated projections.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SIMULATOR -->
+<!-- ============================================================ -->
+<section id="simulator">
+  <div class="section-header">
+    <h2>Safe Optimization Simulator <span class="tag tag-orange">SIMULATED / PROJECTED</span></h2>
+    <p class="lede">Non-destructive simulation. Nothing is actually killed, suspended, modified, or terminated.</p>
+  </div>
+
+  <div class="controls">
+    <select id="simset">
+      <option value="sync">Background Sync (optimization candidate)</option>
+      <option value="active">Active Foreground App (protect)</option>
+      <option value="uncertain">Uncertain Workload (review)</option>
+      <option value="critical">System-Critical Process (protect)</option>
+      <option value="presentation">Presentation Scenario</option>
+    </select>
+    <button id="simrun" class="primary">Run Simulation</button>
+  </div>
+
+  <div id="simout"></div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SNAPDRAGON NPU -->
+<!-- ============================================================ -->
+<section id="npu">
+  <div class="section-header">
+    <h2>Snapdragon NPU Validation <span class="tag tag-green">REAL QUALCOMM VALIDATION</span></h2>
+    <p class="warn">HOSTED REFERENCE HARDWARE · MODEL-LEVEL VALIDATION · Snapdragon X Elite CRD</p>
+  </div>
+
+  <div class="cards3 npu-jobs">
+    <div class="card job-card">
+      <div class="job-status success">SUCCESS</div>
+      <h3>Compile</h3>
+      <div class="job-id">jp0m9yd0g</div>
+      <p>Model: process_classifier.onnx<br>Runtime: ONNX · Input (1,11) · Opset 12</p>
+    </div>
+    <div class="card job-card">
+      <div class="job-status success">SUCCESS</div>
+      <h3>Profile</h3>
+      <div class="job-id">jpxlrj1lp</div>
+      <p>Target: <b>Snapdragon X Elite CRD</b><br>
+      Device: sc8380xp · Windows 11<br>
+      Hexagon: v73<br>
+      Executed nodes: <b>10/10 NPU</b></p>
+    </div>
+    <div class="card job-card">
+      <div class="job-status success">SUCCESS</div>
+      <h3>Inference</h3>
+      <div class="job-id">j5wlrew3p</div>
+      <p>CPU/NPU agreement: <b>4/4</b><br>
+      Max probability difference: <b>0.0015</b></p>
+    </div>
+  </div>
+
+  <!-- NPU Execution Flow -->
+  <h3>NPU Execution Pipeline</h3>
+  <div class="npu-flow">
+    <div class="npu-node">ONNX Model<br><span>1.9 KB</span></div>
+    <div class="npu-arrow">→</div>
+    <div class="npu-node">Qualcomm AI Hub<br><span>Cloud compile</span></div>
+    <div class="npu-arrow">→</div>
+    <div class="npu-node">Compile<br><span>jp0m9yd0g</span></div>
+    <div class="npu-arrow">→</div>
+    <div class="npu-node">Profile<br><span>jpxlrj1lp</span></div>
+    <div class="npu-arrow">→</div>
+    <div class="npu-node npu-hl">Hexagon NPU<br><span>v73 · 10/10 nodes</span></div>
+    <div class="npu-arrow">→</div>
+    <div class="npu-node">Inference<br><span>j5wlrew3p</span></div>
+    <div class="npu-arrow">→</div>
+    <div class="npu-node npu-accent">Output Verified<br><span>4/4 agreement</span></div>
+  </div>
+
+  <h3>CPU vs NPU Output Comparison</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Probe</th><th>CPU Output</th><th>NPU Output</th><th>Max Prob Diff</th><th>Agree</th></tr></thead>
+      <tbody id="cmp"></tbody>
+    </table>
+  </div>
+
+  <h3>Local CPU Measurements</h3>
+  <div class="cards4">
+    <div class="card metric"><div class="metric-value">0.024 ms</div><div class="metric-label">Single-row CPU inference</div></div>
+    <div class="card metric"><div class="metric-value">0.051 ms</div><div class="metric-label">Batch-64 CPU inference</div></div>
+    <div class="card metric"><div class="metric-value">13.06 ms</div><div class="metric-label">Model load time</div></div>
+    <div class="card metric"><div class="metric-value">1.9 KB</div><div class="metric-label">Model size</div></div>
+  </div>
+  <p class="dim small">LOCAL CPU MEASUREMENTS · No battery savings claims · No universal performance claims</p>
+
+  <!-- Hardware distinction cards -->
+  <h3>Hardware Status</h3>
+  <div class="cards3 hw-cards">
+    <div class="card hw-card">
+      <h4>Local Development Machine</h4>
+      <p><b>Dell Inspiron 15</b> · Intel Core i5 · Windows x64</p>
+      <p>AI backend: <b class="warn">CPU FALLBACK</b></p>
+      <p class="dim">No Snapdragon NPU — expected, not a failure.</p>
+    </div>
+    <div class="card hw-card">
+      <h4>Qualcomm Validation</h4>
+      <p><b>Snapdragon X Elite CRD</b> · Hexagon v73</p>
+      <p>NPU inference: <b class="ok">VERIFIED</b></p>
+      <p class="dim">Hosted reference platform, not HP hardware.</p>
+    </div>
+    <div class="card hw-card">
+      <h4>Target Platform</h4>
+      <p><b>Snapdragon-powered HP PCs</b></p>
+      <p>OS: Windows 11 on Arm</p>
+      <p class="dim">Full application validation requires physical HP Snapdragon hardware.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- ARCHITECTURE -->
+<!-- ============================================================ -->
+<section id="architecture">
+  <div class="section-header">
+    <h2>System Architecture</h2>
+    <p class="lede">Complete pipeline from telemetry to safe recommendation.</p>
+  </div>
+
+  <div class="diagram glass arch-full">
+    <div class="dnode">Windows 11 on Arm</div><div class="darrow"></div>
+    <div class="dnode">System Telemetry (tiered sampler, ~1% CPU)</div><div class="darrow"></div>
+    <div class="dnode">Process Feature Extraction (11 signals)</div><div class="darrow"></div>
+    <div class="dnode">11-Feature AI Classifier</div><div class="darrow"></div>
+    <div class="dnode">ONNX Runtime</div><div class="darrow"></div>
+    <div class="dnode">Qualcomm Execution Path</div><div class="darrow"></div>
+    <div class="dnode hl">Hexagon NPU on Snapdragon</div><div class="darrow"></div>
+    <div class="dnode">Confidence + OOD Familiarity</div><div class="darrow"></div>
+    <div class="dnode">Safety Policy Engine</div><div class="darrow"></div>
+    <div class="dnode accent">Recommendation / Simulation → Dashboard</div>
+  </div>
+
+  <div class="cards2">
+    <div class="card">
+      <h3>Primary Path <span class="tag tag-green">REAL</span></h3>
+      <p>Telemetry → Features → ONNX → Snapdragon NPU → Confidence/OOD → Safety → Recommendation</p>
+    </div>
+    <div class="card">
+      <h3>Fallback Path <span class="tag tag-orange">CPU FALLBACK</span></h3>
+      <p>Unsupported local hardware → CPU fallback. Telemetry, safety, and UI never depend on which backend runs inference.</p>
+    </div>
+  </div>
+
+  <h3>Label System</h3>
+  <div class="cards3">
+    <div class="card"><h3><span class="tag tag-green">REAL</span></h3><p>Actually measured or verified. Real telemetry, real process list, real Qualcomm jobs, real NPU profile, real inference results, 74/74 tests.</p></div>
+    <div class="card"><h3><span class="tag tag-orange">SIMULATED</span></h3><p>Generated by the safe demo simulator. Reduce background activity, defer background work, projected effects.</p></div>
+    <div class="card"><h3><span class="tag tag-blue">TARGET</span></h3><p>Intended future deployment. HP Snapdragon laptop, full end-to-end HP hardware validation.</p></div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- EVIDENCE -->
+<!-- ============================================================ -->
+<section id="evidence">
+  <div class="section-header">
+    <h2>Competition Evidence <span class="tag tag-green">VERIFIED FACTS ONLY</span></h2>
+  </div>
+
+  <div class="cards4 evidence-grid" id="evgrid"></div>
+
+  <h3>Validation Documents</h3>
+  <div class="cards3 doc-links">
+    <a class="card doc-card" href="https://github.com/Aravind13115/snapdragon/blob/main/docs/SNAPDRAGON_NPU_VALIDATION.md" target="_blank" rel="noopener">
+      <h4>NPU Validation</h4><p>Phase 4 results: Hub jobs, 4/4 argmax agreement</p>
+    </a>
+    <a class="card doc-card" href="https://github.com/Aravind13115/snapdragon/blob/main/docs/SNAPDRAGON_NPU_BENCHMARK.md" target="_blank" rel="noopener">
+      <h4>NPU Benchmark</h4><p>Real measurements: CPU timing, model size</p>
+    </a>
+    <a class="card doc-card" href="https://github.com/Aravind13115/snapdragon/blob/main/FINAL_COMPETITION_PACKAGE.md" target="_blank" rel="noopener">
+      <h4>Competition Package</h4><p>Complete submission package</p>
+    </a>
+    <a class="card doc-card" href="https://github.com/Aravind13115/snapdragon/blob/main/FINAL_PHASE4_NPU_REPORT.md" target="_blank" rel="noopener">
+      <h4>Phase 4 Report</h4><p>Qualcomm NPU validation details</p>
+    </a>
+    <a class="card doc-card" href="https://github.com/Aravind13115/snapdragon/blob/main/SUBMISSION_CHECKLIST.md" target="_blank" rel="noopener">
+      <h4>Submission Checklist</h4><p>Pre-submission verification</p>
+    </a>
+    <a class="card doc-card" href="https://github.com/Aravind13115/snapdragon/blob/main/TEST_REPORT_PHASE1_TO_2.5.md" target="_blank" rel="noopener">
+      <h4>Test Report</h4><p>Phase 1-2.5 test results</p>
+    </a>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- PROJECT JOURNEY -->
+<!-- ============================================================ -->
+<section id="journey">
+  <div class="section-header">
+    <h2>Project Journey</h2>
+    <p class="lede">Complete development timeline from system observation to competition submission.</p>
+  </div>
+
+  <div class="timeline">
+    <div class="tl-item">
+      <div class="tl-marker done"></div>
+      <div class="tl-content">
+        <h3>Phase 1 — System Observation</h3>
+        <p class="tl-status tag tag-green">VERIFIED</p>
+        <p>Implemented real system telemetry: CPU, RAM, disk, network, battery, uptime, live process list,
+        platform detection, CPU architecture detection, foreground application detection, safety guard,
+        dry-run optimization planner, and dashboard.</p>
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-marker done"></div>
+      <div class="tl-content">
+        <h3>Phase 2 — AI Layer</h3>
+        <p class="tl-status tag tag-green">VERIFIED</p>
+        <p>11-feature neural network (11→16→8→4, ReLU, Softmax, ArgMax). Pure NumPy/Adam training.
+        ONNX export (1.9 KB, opset 12). Synthetic train/test: 93.22% train, 87.38% test.</p>
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-marker done"></div>
+      <div class="tl-content">
+        <h3>Phase 2.5 — Calibration + OOD + Safety</h3>
+        <p class="tl-status tag tag-green">VERIFIED</p>
+        <p>Removed protected-process label leakage. Temperature scaling T=2.0. Centroid-distance familiarity
+        model for OOD detection. Four safety states: PROTECT, OBSERVE, REVIEW, OPTIMIZATION CANDIDATE.</p>
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-marker done"></div>
+      <div class="tl-content">
+        <h3>Phase 2.7 — Low-Overhead Monitoring</h3>
+        <p class="tl-status tag tag-green">VERIFIED</p>
+        <p>Tiered sampler with PID cache and reuse detection. Monitoring overhead reduced from ~6-8% bursts
+        to ~1.0% steady CPU. ~70 MB RAM. Decision logging and history API.</p>
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-marker done"></div>
+      <div class="tl-content">
+        <h3>Phase 3 — Safe Optimization Simulator</h3>
+        <p class="tl-status tag tag-green">VERIFIED</p>
+        <p>Non-destructive simulation with four demo scenarios. Every result marked SIMULATED or PROJECTED.
+        Zero process-control code paths.</p>
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-marker done"></div>
+      <div class="tl-content">
+        <h3>Phase 4 — Qualcomm Snapdragon NPU Validation</h3>
+        <p class="tl-status tag tag-green">FULLY NPU VALIDATED</p>
+        <p>Compile jp0m9yd0g, Profile jpxlrj1lp (10/10 NPU nodes), Inference j5wlrew3p (4/4 CPU/NPU agreement).
+        Snapdragon X Elite CRD, Hexagon v73, Windows 11.</p>
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-marker final"></div>
+      <div class="tl-content">
+        <h3>Final — Competition Package</h3>
+        <p class="tl-status tag tag-blue">SUBMITTED</p>
+        <p>Complete documentation, evidence, presentation materials, and submission checklist.
+        All phases verified. Technical core frozen.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- DECISION HISTORY -->
+<!-- ============================================================ -->
+<section id="decisions">
+  <div class="section-header">
+    <h2>Decision History</h2>
+    <p class="lede">Model vote vs safety decision, with reasons. Every decision is logged.</p>
+  </div>
+  <div class="controls">
+    <select id="dstate">
+      <option value="">All</option>
+      <option>PROTECT</option>
+      <option>OBSERVE</option>
+      <option>REVIEW</option>
+      <option>OPTIMIZATION CANDIDATE</option>
+    </select>
+    <span id="dcount" class="dim"></span>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Time</th><th>Process</th><th>AI State</th><th>Conf</th>
+      <th>Familiarity</th><th>Safety</th><th>Recommendation</th><th>Result</th></tr></thead>
+      <tbody id="decrows"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- ABOUT -->
+<!-- ============================================================ -->
+<section id="about">
+  <div class="section-header">
+    <h2>About</h2>
+  </div>
+
+  <div class="card about-card">
+    <p class="lede">Independent competition prototype. Safety-first AI workload intelligence
+    for Windows 11 on Snapdragon-powered HP PCs.</p>
+    <p>The system observes real workloads, understands workload behavior, predicts optimization
+    opportunities, measures confidence and familiarity, becomes more conservative when uncertain,
+    separates AI prediction from safety policy, never directly kills or modifies processes,
+    and simulates optimization safely.</p>
+    <p>The ONNX model has been successfully validated on Qualcomm Snapdragon X Elite reference
+    hardware with Hexagon NPU execution through Qualcomm AI Hub.</p>
+    <p>The technology is Snapdragon-targeted. The NPU model validation is real.
+    The full HP end-to-end application still requires physical HP Snapdragon hardware.</p>
+  </div>
+
+  <div class="cards4 about-facts">
+    <div class="card"><h4>AI Predicts</h4><p>11-feature ONNX neural network with calibrated confidence</p></div>
+    <div class="card"><h4>Safety Decides</h4><p>Deterministic policy engine, not the AI, makes the final call</p></div>
+    <div class="card"><h4>Non-Destructive</h4><p>Zero process-control operations, simulation only</p></div>
+    <div class="card"><h4>NPU Validated</h4><p>Real Qualcomm AI Hub verification on Snapdragon X Elite CRD</p></div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="footer-content">
+    <div>
+      <b>Snapdragon AI Smart Process &amp; Task Manager</b>
+      <p>Independent competition prototype by Aravind.</p>
+    </div>
+    <div class="footer-legal">
+      <p>Independent competition prototype. Snapdragon and Qualcomm are trademarks of
+      Qualcomm Incorporated and/or its subsidiaries. Hexagon is a trademark of Qualcomm.
+      Windows is a trademark of Microsoft.</p>
+      <p>This project is not affiliated with or endorsed by Qualcomm or HP.</p>
+    </div>
+  </div>
+</footer>
+
+<script src="site.js"></script>
+</body>
+</html>

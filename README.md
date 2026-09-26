@@ -1,10 +1,22 @@
 # Snapdragon AI Smart Process & Task Manager
-**Technical name:** Snapdragon AI Adaptive Process Optimizer · v0.3.0-phase3+
+
+[![Hackathon Project](https://img.shields.io/badge/Hackathon-2026-blue.svg)](https://github.com/Aravind13115/snapdragon)
+[![Platform](https://img.shields.io/badge/Platform-Windows%20on%20ARM-red.svg)](https://www.qualcomm.com/products/mobile/snapdragon/snapdragon-x-elite)
+[![AI Engine](https://img.shields.io/badge/AI-ONNX%20%2B%20Hexagon%20NPU-green.svg)](https://github.com/Aravind13115/snapdragon)
+
+**Technical name:** Snapdragon AI Adaptive Process Optimizer
 **Positioning:** a stability-first, Snapdragon-aware AI resource-management
 prototype for Snapdragon-powered HP Windows-on-Arm PCs.
 
 > Designed and developed with the intent to be optimised for
 > Snapdragon-powered HP PCs.
+
+---
+
+## Hackathon Submission
+
+This project was built for a hackathon, showcasing AI-driven process optimization
+leveraging Snapdragon X Elite's Hexagon NPU for on-device inference.
 
 ## 1. Problem
 Background CPU workloads fight foreground applications for resources while
