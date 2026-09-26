@@ -112,7 +112,7 @@ async function boot() {
   navLinks.forEach(a => {
     a.addEventListener('click', e => {
       e.preventDefault();
-      const hash = a.getAttribute('history') || a.getAttribute('href');
+      const hash = a.getAttribute('href');
       history.pushState(null, '', hash);
       setActive(hash);
     });
@@ -396,3 +396,327 @@ function tourNext() {
 
 /* ── Start ── */
 boot();
+
+/* ============================================================
+   INTERACTIVE TECHNOLOGY ENVIRONMENT
+   Cursor-based particle system + scene transitions
+   ============================================================ */
+
+const InteractiveEngine = (() => {
+  const nodes = document.querySelectorAll('.inode');
+  const scenes = document.querySelectorAll('.scene');
+  const contextPanel = document.getElementById('context-panel');
+  const canvas = document.getElementById('cursor-canvas');
+  const sceneContainer = document.getElementById('scene-container');
+
+  let activeScene = null;
+  let mouseX = 0, mouseY = 0;
+  let particles = [];
+  let rafId = null;
+  let isReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Context data for each technology node
+  const contextData = {
+    windows: {
+      title: 'Windows 11',
+      badge: 'WORKLOAD ENVIRONMENT',
+      badgeClass: 'tag-blue',
+      description: 'Windows 11 on Arm is the workload environment being observed. The system monitors running applications, background processes, and system services — all without taking destructive actions.',
+      connections: ['Feeds workloads to Snapdragon platform', 'Provides process telemetry data', 'Foreground app detection', 'Architecture and emulation signals']
+    },
+    snapdragon: {
+      title: 'Snapdragon Platform',
+      badge: 'HARDWARE ACCELERATION',
+      badgeClass: 'tag-green',
+      description: 'The Snapdragon platform provides heterogeneous computing: CPU for general workloads, GPU for graphics, and Hexagon NPU for AI inference. On supported hardware, the NPU accelerates AI classification. On unsupported hardware (like the local Dell Intel machine), the system uses CPU fallback.',
+      connections: ['Receives Windows workloads', 'Hexagon NPU executes AI inference', 'CPU fallback when NPU unavailable', 'Validated on Snapdragon X Elite CRD']
+    },
+    ai: {
+      title: 'AI Workload Intelligence',
+      badge: 'NEURAL NETWORK',
+      badgeClass: 'tag-purple',
+      description: 'An 11-feature neural network (11→16→8→4, ReLU, Softmax, ArgMax) classifies workloads. The model is 1.9 KB ONNX with temperature scaling T=2.0. Output classes: PROTECTED, USER_IMPORTANT, FLEXIBLE, DEFERRABLE.',
+      connections: ['Receives 11 process features', 'Outputs 4-class prediction', 'Calibrated confidence score', 'Familiarity / OOD assessment']
+    },
+    safety: {
+      title: 'Safety Engine',
+      badge: 'DECISION GATE',
+      badgeClass: 'tag-orange',
+      description: 'The safety engine sits between AI prediction and any action. It applies deterministic rules: protected-process allowlist, foreground protection, confidence floors, and OOD unfamiliarity checks. AI predicts — safety decides.',
+      connections: ['Receives AI prediction + confidence', 'Applies deterministic safety rules', 'Outputs PROTECT / OBSERVE / REVIEW / CANDIDATE', 'Cannot be bypassed by the AI']
+    },
+    optimization: {
+      title: 'Optimization Recommendation',
+      badge: 'SIMULATION ONLY',
+      badgeClass: 'tag-green',
+      description: 'Only after safety approval does the system generate recommendations. Every action is SIMULATED or PROJECTED — never executed. Possible outputs: REDUCE_BACKGROUND_ACTIVITY, DEFER_BACKGROUND_WORK, PROTECT_FOREGROUND_ACTIVITY, PROTECT_SYSTEM_CRITICAL_PROCESS.',
+      connections: ['Only runs after safety approval', 'Non-destructive simulation', 'Projected effects only', 'Zero process-control operations']
+    }
+  };
+
+  // Particle configurations per scene
+  const particleConfigs = {
+    windows: { count: 12, color: '#58a6ff', size: 3, speed: 0.8, shape: 'square' },
+    snapdragon: { count: 16, color: '#e4002b', size: 2, speed: 1.2, shape: 'circle' },
+    ai: { count: 14, color: '#bc8cff', size: 3, speed: 1.0, shape: 'circle' },
+    safety: { count: 10, color: '#d29922', size: 4, speed: 0.6, shape: 'diamond' },
+    optimization: { count: 8, color: '#3fb950', size: 3, speed: 0.7, shape: 'circle' }
+  };
+
+  // Scene descriptions for connected path highlighting
+  const scenePaths = {
+    windows: ['windows'],
+    snapdragon: ['windows', 'snapdragon'],
+    ai: ['snapdragon', 'ai'],
+    safety: ['ai', 'safety'],
+    optimization: ['safety', 'optimization']
+  };
+
+  function init() {
+    if (isReducedMotion) return;
+
+    // Track mouse position
+    document.addEventListener('mousemove', onMouseMove, { passive: true });
+    document.addEventListener('mouseleave', onMouseLeave);
+
+    // Node interactions
+    nodes.forEach(node => {
+      const scene = node.dataset.scene;
+      node.addEventListener('mouseenter', () => activateScene(scene));
+      node.addEventListener('click', () => activateScene(scene));
+      node.addEventListener('focus', () => activateScene(scene));
+      node.addEventListener('blur', () => deactivateScene());
+      node.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          activateScene(scene);
+        }
+      });
+    });
+
+    // Click outside to deactivate
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.interactive-layout')) {
+        deactivateScene();
+      }
+    });
+
+    // Handle visibility change
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        stopParticles();
+      } else if (activeScene) {
+        startParticles();
+      }
+    });
+
+    // Handle scroll - pause when off-screen
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) {
+          stopParticles();
+        } else if (activeScene) {
+          startParticles();
+        }
+      });
+    }, { threshold: 0.1 });
+    observer.observe(document.getElementById('interactive'));
+  }
+
+  function onMouseMove(e) {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+    updateParticles();
+  }
+
+  function onMouseLeave() {
+    stopParticles();
+  }
+
+  function activateScene(sceneName) {
+    if (activeScene === sceneName) return;
+    activeScene = sceneName;
+
+    // Update nodes
+    nodes.forEach(n => n.classList.toggle('active', n.dataset.scene === sceneName));
+
+    // Update scenes
+    scenes.forEach(s => s.classList.toggle('active', s.dataset.scene === sceneName));
+
+    // Highlight connected path
+    const path = scenePaths[sceneName] || [];
+    nodes.forEach(n => {
+      const isConnected = path.includes(n.dataset.scene);
+      n.style.opacity = isConnected ? '1' : '.5';
+    });
+
+    // Update context panel
+    updateContext(sceneName);
+
+    // Start particles
+    startParticles();
+  }
+
+  function deactivateScene() {
+    activeScene = null;
+    nodes.forEach(n => {
+      n.classList.remove('active');
+      n.style.opacity = '1';
+    });
+    scenes.forEach(s => s.classList.remove('active'));
+    stopParticles();
+    contextPanel.innerHTML = '<div class="context-placeholder"><p>Select a technology node to explore its role in the system.</p></div>';
+  }
+
+  function updateContext(sceneName) {
+    const data = contextData[sceneName];
+    if (!data) return;
+    contextPanel.innerHTML = `
+      <div class="context-content">
+        <span class="context-badge ${data.badgeClass}">${data.badge}</span>
+        <h4>${data.title}</h4>
+        <p>${data.description}</p>
+        <div class="context-connections">
+          <h5>Connects to:</h5>
+          <ul>${data.connections.map(c => `<li>${c}</li>`).join('')}</ul>
+        </div>
+      </div>
+    `;
+  }
+
+  // Particle system
+  function startParticles() {
+    if (isReducedMotion || !activeScene || rafId) return;
+    const config = particleConfigs[activeScene];
+    if (!config) return;
+
+    // Create canvas
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // Create particles
+    particles = [];
+    for (let i = 0; i < config.count; i++) {
+      particles.push(createParticle(config));
+    }
+
+    // Start animation loop
+    rafId = requestAnimationFrame(animateParticles);
+  }
+
+  function stopParticles() {
+    if (rafId) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+    particles = [];
+    canvas.width = 0;
+    canvas.height = 0;
+  }
+
+  function createParticle(config) {
+    return {
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * config.speed,
+      vy: (Math.random() - 0.5) * config.speed,
+      size: config.size * (0.5 + Math.random()),
+      color: config.color,
+      shape: config.shape,
+      opacity: 0.3 + Math.random() * 0.7
+    };
+  }
+
+  function animateParticles() {
+    if (!activeScene || document.hidden) {
+      stopParticles();
+      return;
+    }
+
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const config = particleConfigs[activeScene];
+    if (!config) {
+      stopParticles();
+      return;
+    }
+
+    particles.forEach(p => {
+      // Move toward mouse slightly
+      const dx = mouseX - p.x;
+      const dy = mouseY - p.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 200 && dist > 0) {
+        p.vx += (dx / dist) * 0.02;
+        p.vy += (dy / dist) * 0.02;
+      }
+
+      // Apply velocity with damping
+      p.vx *= 0.98;
+      p.vy *= 0.98;
+      p.x += p.vx;
+      p.y += p.vy;
+
+      // Wrap around screen
+      if (p.x < 0) p.x = canvas.width;
+      if (p.x > canvas.width) p.x = 0;
+      if (p.y < 0) p.y = canvas.height;
+      if (p.y > canvas.height) p.y = 0;
+
+      // Draw particle
+      ctx.save();
+      ctx.globalAlpha = p.opacity;
+      ctx.fillStyle = p.color;
+
+      if (p.shape === 'circle') {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (p.shape === 'square') {
+        ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+      } else if (p.shape === 'diamond') {
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y - p.size);
+        ctx.lineTo(p.x + p.size, p.y);
+        ctx.lineTo(p.x, p.y + p.size);
+        ctx.lineTo(p.x - p.size, p.y);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.restore();
+    });
+
+    // Draw cursor ring
+    if (mouseX > 0 && mouseY > 0) {
+      ctx.save();
+      ctx.globalAlpha = 0.15;
+      ctx.strokeStyle = config.color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(mouseX, mouseY, 30, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    rafId = requestAnimationFrame(animateParticles);
+  }
+
+  function updateParticles() {
+    // Mouse position is tracked via onMouseMove
+  }
+
+  // Handle window resize
+  window.addEventListener('resize', () => {
+    if (rafId) {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+  });
+
+  // Initialize
+  init();
+
+  return { activateScene, deactivateScene };
+})();
+
