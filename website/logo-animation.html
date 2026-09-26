@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Windows × Snapdragon — AI PC Ecosystem</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#000}
+canvas{display:block;width:100vw;height:100vh}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+(() => {
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  let W, H, CX, CY;
+
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    CX = W / 2;
+    CY = H / 2;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  // Timing
+  const DURATION = 8000;
+  const startTime = performance.now();
+  let rafId = null;
+
+  // Scene boundaries
+  const SCENES = {
+    particles: [0, 1500],
+    windows: [1500, 3000],
+    snapdragon: [3000, 4500],
+    npu: [4500, 6000],
+    ai: [6000, 7000],
+    final: [7000, 8000],
+  };
+
+  // Utility
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const easeOut = t => 1 - Math.pow(1 - t, 3);
+  const easeInOut = t => t < .5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3)/2;
+  const easeIn = t => t * t * t;
+
+  function sceneProgress(name, t) {
+    const [s, e] = SCENES[name];
+    return clamp((t - s) / (e - s), 0, 1);
+  }
+
+  // ─── PARTICLE SYSTEM ───
+  class Particle {
+    constructor(side) {
+      this.reset(side);
+    }
+    reset(side) {
+      this.side = side; // 'blue', 'red', 'both'
+      const halfW = W * 0.35;
+      if (side === 'blue') {
+        this.x = Math.random() * halfW - halfW * 0.5;
+        this.y = Math.random() * H;
+        this.vx = 0; this.vy = 0;
+        this.targetX = -W * 0.22 + (Math.random() - 0.5) * 80;
+        this.targetY = CY + (Math.random() - 0.5) * 160;
+      } else if (side === 'red') {
+        this.x = W * 0.5 + Math.random() * halfW * 0.5;
+        this.y = Math.random() * H;
+        this.vx = 0; this.vy = 0;
+        this.targetX = W * 0.22 + (Math.random() - 0.5) * 80;
+        this.targetY = CY + (Math.random() - 0.5) * 160;
+      } else {
+        this.x = Math.random() * W;
+        this.y = Math.random() * H;
+        this.targetX = CX + (Math.random() - 0.5) * 200;
+        this.targetY = CY + (Math.random() - 0.5) * 200;
+      }
+      this.life = 0;
+      this.maxLife = 3000 + Math.random() * 2000;
+      this.size = 0.5 + Math.random() * 2;
+      this.opacity = 0;
+    }
+    update(dt, t) {
+      this.life += dt;
+      const lifeT = this.life / this.maxLife;
+      this.opacity = lifeT < 0.2 ? lifeT / 0.2 : lifeT > 0.7 ? (1 - lifeT) / 0.3 : 1;
+
+      const dx = this.targetX - this.x;
+      const dy = this.targetY - this.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist > 0) {
+        const accel = 0.0003 * dist;
+        this.vx += (dx / dist) * accel * dt;
+        this.vy += (dy / dist) * accel * dt;
+      }
+      this.vx *= 0.98;
+      this.vy *= 0.98;
+      this.x += this.vx * dt * 0.06;
+      this.y += this.vy * dt * 0.06;
+
+      if (this.life >= this.maxLife) this.reset(this.side);
+    }
+    draw() {
+      if (this.opacity <= 0) return;
+      const isBlue = this.side === 'blue' || (this.side === 'both' && this.x < CX);
+      const r = isBlue ? 60 : 220;
+      const g = isBlue ? 140 : 60;
+      const b = isBlue ? 255 : 20;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${r},${g},${b},${this.opacity * 0.8})`;
+      ctx.fill();
+      // Glow
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size * 3, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${r},${g},${b},${this.opacity * 0.15})`;
+      ctx.fill();
+    }
+  }
+
+  const PARTICLE_COUNT = 180;
+  const particles = [];
+  for (let i = 0; i < PARTICLE_COUNT; i++) {
+    particles.push(new Particle(i % 2 === 0 ? 'blue' : 'red'));
+  }
+
+  // ─── WINDOWS LOGO (4-pane geometric representation) ───
+  function drawWindowsLogo(x, y, scale, opacity, glow) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    ctx.globalAlpha = opacity;
+
+    const paneW = 38, paneH = 38, gap = 4;
+    const totalW = paneW * 2 + gap;
+    const totalH = paneH * 2 + gap;
+
+    // Subtle perspective skew for depth
+    const skewX = 0.08;
+
+    const panes = [
+      { px: 0, py: 0 },
+      { px: paneW + gap, py: 0 },
+      { px: 0, py: paneH + gap },
+      { px: paneW + gap, py: paneH + gap },
+    ];
+
+    // Glow behind
+    if (glow > 0) {
+      ctx.shadowColor = `rgba(80,160,255,${glow})`;
+      ctx.shadowBlur = 30 * glow;
+    }
+
+    panes.forEach((p, i) => {
+      const px = p.px - totalW / 2;
+      const py = p.py - totalH / 2;
+      // Glass-like panel with subtle gradient
+      const grad = ctx.createLinearGradient(px, py, px + paneW, py + paneH);
+      grad.addColorStop(0, `rgba(80,180,255,${0.9 * opacity})`);
+      grad.addColorStop(1, `rgba(40,120,220,${0.85 * opacity})`);
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(px + px * skewX, py);
+      ctx.lineTo(px + paneW + px * skewX, py);
+      ctx.lineTo(px + paneW, py + paneH);
+      ctx.lineTo(px, py + paneH);
+      ctx.closePath();
+      ctx.fill();
+
+      // Edge highlight
+      ctx.strokeStyle = `rgba(150,210,255,${0.3 * opacity})`;
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+    });
+
+    ctx.restore();
+  }
+
+  // ─── SNAPDRAGON FLAME LOGO (stylized geometric representation) ───
+  function drawSnapdragonLogo(x, y, scale, opacity, glow) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    ctx.globalAlpha = opacity;
+
+    if (glow > 0) {
+      ctx.shadowColor = `rgba(228,0,43,${glow})`;
+      ctx.shadowBlur = 40 * glow;
+    }
+
+    // Stylized flame shape
+    const flameH = 50, flameW = 24;
+    ctx.beginPath();
+    // Outer flame
+    ctx.moveTo(0, -flameH / 2);
+    ctx.bezierCurveTo(flameW, -flameH / 4, flameW * 0.7, flameH / 4, flameW * 0.3, flameH / 2);
+    ctx.bezierCurveTo(flameW * 0.1, flameH / 3, -flameW * 0.1, flameH / 3, -flameW * 0.3, flameH / 2);
+    ctx.bezierCurveTo(-flameW * 0.7, flameH / 4, -flameW, -flameH / 4, 0, -flameH / 2);
+
+    const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, flameH / 2);
+    grad.addColorStop(0, `rgba(255,220,200,${0.95 * opacity})`);
+    grad.addColorStop(0.3, `rgba(255,100,50,${0.9 * opacity})`);
+    grad.addColorStop(0.6, `rgba(228,0,43,${0.85 * opacity})`);
+    grad.addColorStop(1, `rgba(180,0,30,${0.8 * opacity})`);
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Inner flame detail
+    ctx.beginPath();
+    ctx.moveTo(0, -flameH / 4);
+    ctx.bezierCurveTo(flameW * 0.4, -flameH / 6, flameW * 0.2, flameH / 8, 0, flameH / 4);
+    ctx.bezierCurveTo(-flameW * 0.2, flameH / 8, -flameW * 0.4, -flameH / 6, 0, -flameH / 4);
+    const innerGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, flameH / 4);
+    innerGrad.addColorStop(0, `rgba(255,255,240,${0.9 * opacity})`);
+    innerGrad.addColorStop(1, `rgba(255,180,100,${0.7 * opacity})`);
+    ctx.fillStyle = innerGrad;
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  // ─── NPU CHIP VISUALIZATION ───
+  function drawNPUChip(x, y, scale, opacity, circuitProgress, nodeProgress, t) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    ctx.globalAlpha = opacity;
+
+    const chipSize = 40;
+
+    // Chip body
+    ctx.fillStyle = `rgba(20,22,30,${0.9 * opacity})`;
+    ctx.strokeStyle = `rgba(150,180,220,${0.6 * opacity})`;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(-chipSize, -chipSize, chipSize * 2, chipSize * 2, 4);
+    ctx.fill();
+    ctx.stroke();
+
+    // Inner die
+    ctx.fillStyle = `rgba(40,50,70,${0.7 * opacity})`;
+    ctx.beginPath();
+    ctx.roundRect(-chipSize * 0.6, -chipSize * 0.6, chipSize * 1.2, chipSize * 1.2, 2);
+    ctx.fill();
+
+    // Circuit lines expanding outward
+    const circuitLines = 12;
+    for (let i = 0; i < circuitLines; i++) {
+      const angle = (i / circuitLines) * Math.PI * 2;
+      const len = chipSize * (1.5 + Math.sin(t * 0.001 + i) * 0.3);
+      const ex = Math.cos(angle) * len;
+      const ey = Math.sin(angle) * len;
+      const progress = clamp(circuitProgress * 1.5 - i * 0.03, 0, 1);
+      if (progress <= 0) continue;
+
+      const mx = Math.cos(angle) * len * progress;
+      const my = Math.sin(angle) * len * progress;
+
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(angle) * chipSize, Math.sin(angle) * chipSize);
+      ctx.lineTo(mx, my);
+
+      // Right-angle routing
+      const bendX = Math.cos(angle) * len * progress * 0.7;
+      const bendY = Math.sin(angle) * len * progress * 0.7;
+      const perpAngle = angle + Math.PI / 2;
+      const bendOffset = (i % 2 === 0 ? 1 : -1) * 10 * progress;
+
+      ctx.lineTo(bendX + Math.cos(perpAngle) * bendOffset, bendY + Math.sin(perpAngle) * bendOffset);
+      ctx.lineTo(mx, my);
+
+      ctx.strokeStyle = `rgba(100,200,255,${0.5 * opacity * progress})`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Circuit node at end
+      if (progress > 0.8) {
+        const nodeAlpha = (progress - 0.8) * 5;
+        ctx.beginPath();
+        ctx.arc(mx, my, 2, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(150,220,255,${nodeAlpha * opacity})`;
+        ctx.fill();
+
+        // Pulsing node
+        const pulseSize = 4 + Math.sin(t * 0.003 + i) * 2;
+        ctx.beginPath();
+        ctx.arc(mx, my, pulseSize, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(150,220,255,${0.3 * nodeAlpha * opacity})`;
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+      }
+    }
+
+    // Neural network nodes inside chip
+    const nnNodes = [
+      { x: -15, y: -15 }, { x: 0, y: -15 }, { x: 15, y: -15 },
+      { x: -15, y: 0 }, { x: 0, y: 0 }, { x: 15, y: 0 },
+      { x: -15, y: 15 }, { x: 0, y: 15 }, { x: 15, y: 15 },
+    ];
+
+    nnNodes.forEach((n, i) => {
+      const np = clamp(nodeProgress * 2 - i * 0.05, 0, 1);
+      if (np <= 0) return;
+      const pulse = 0.5 + Math.sin(t * 0.004 + i * 0.5) * 0.5;
+
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, 2.5 * np, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(180,230,255,${np * opacity * (0.5 + pulse * 0.5)})`;
+      ctx.fill();
+
+      // Connections to neighbors
+      nnNodes.forEach((m, j) => {
+        if (j <= i) return;
+        const dx = m.x - n.x, dy = m.y - n.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > 20) return;
+        const connP = clamp(nodeProgress * 2 - i * 0.05 - j * 0.03, 0, 1);
+        if (connP <= 0) return;
+        ctx.beginPath();
+        ctx.moveTo(n.x, n.y);
+        ctx.lineTo(m.x, m.y);
+        ctx.strokeStyle = `rgba(100,200,255,${connP * opacity * 0.2})`;
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+      });
+    });
+
+    ctx.restore();
+  }
+
+  // ─── QUALCOMM AI VISUAL ───
+  function drawQualcommAI(x, y, scale, opacity, t) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(scale, scale);
+    ctx.globalAlpha = opacity;
+
+    // Central energy orb
+    const orbRadius = 25;
+    const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, orbRadius);
+    grad.addColorStop(0, `rgba(255,200,150,${0.8 * opacity})`);
+    grad.addColorStop(0.4, `rgba(228,100,50,${0.5 * opacity})`);
+    grad.addColorStop(0.7, `rgba(228,0,43,${0.2 * opacity})`);
+    grad.addColorStop(1, `rgba(228,0,43,0)`);
+    ctx.beginPath();
+    ctx.arc(0, 0, orbRadius, 0, Math.PI * 2);
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Pulsing rings
+    for (let i = 0; i < 3; i++) {
+      const phase = (t * 0.001 + i * 0.33) % 1;
+      const ringR = orbRadius + phase * 30;
+      const ringAlpha = (1 - phase) * 0.4;
+      ctx.beginPath();
+      ctx.arc(0, 0, ringR, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(255,150,80,${ringAlpha * opacity})`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    // Orbiting data streams
+    for (let i = 0; i < 6; i++) {
+      const angle = t * 0.002 + (i / 6) * Math.PI * 2;
+      const orbitR = orbRadius + 15 + Math.sin(t * 0.003 + i) * 5;
+      const ox = Math.cos(angle) * orbitR;
+      const oy = Math.sin(angle) * orbitR * 0.6;
+      const streamP = (Math.sin(t * 0.005 + i * 0.8) + 1) / 2;
+
+      ctx.beginPath();
+      ctx.arc(ox, oy, 2 + streamP * 1.5, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,200,150,${streamP * opacity * 0.8})`;
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
+  // ─── LIGHT SWEEP ───
+  function drawLightSweep(progress, color) {
+    if (progress <= 0 || progress >= 1) return;
+    const sweepX = lerp(-W * 0.1, W * 1.1, progress);
+    const sweepW = W * 0.15;
+
+    const grad = ctx.createLinearGradient(sweepX - sweepW / 2, 0, sweepX + sweepW / 2, 0);
+    grad.addColorStop(0, `rgba(${color},0)`);
+    grad.addColorStop(0.5, `rgba(${color},0.3)`);
+    grad.addColorStop(1, `rgba(${color},0)`);
+    ctx.fillStyle = grad;
+    ctx.fillRect(sweepX - sweepW / 2, 0, sweepW, H);
+  }
+
+  // ─── MAIN DRAW ───
+  function draw(now) {
+    const t = now - startTime;
+    const dt = Math.min(50, now - (draw.lastTime || now));
+    draw.lastTime = now;
+
+    // Clear with fade for motion trails
+    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+    ctx.fillRect(0, 0, W, H);
+
+    // Scene progress values
+    const pParticles = sceneProgress('particles', t);
+    const pWindows = sceneProgress('windows', t);
+    const pSnapdragon = sceneProgress('snapdragon', t);
+    const pNPU = sceneProgress('npu', t);
+    const pAI = sceneProgress('ai', t);
+    const pFinal = sceneProgress('final', t);
+
+    // Update particles
+    particles.forEach(p => p.update(dt, t));
+    particles.forEach(p => p.draw());
+
+    // ── WINDOWS LOGO ──
+    const winTargetX = lerp(-W * 0.35, -W * 0.18, easeInOut(pWindows));
+    const winTargetY = CY;
+    const winOpacity = easeOut(pWindows);
+    const winGlow = Math.sin(pWindows * Math.PI) * 0.8;
+    const winScale = lerp(0.5, 1.2, easeOut(pWindows));
+
+    if (pWindows > 0) {
+      drawWindowsLogo(winTargetX, winTargetY, winScale, winOpacity, winGlow);
+    }
+
+    // Light sweep for Windows scene
+    if (pWindows > 0.3 && pWindows < 0.9) {
+      drawLightSweep((pWindows - 0.3) / 0.6, '80,160,255');
+    }
+
+    // ── SNAPDRAGON LOGO ──
+    const snapTargetX = lerp(W * 0.35, W * 0.18, easeInOut(pSnapdragon));
+    const snapTargetY = CY;
+    const snapOpacity = easeOut(pSnapdragon);
+    const snapGlow = Math.sin(pSnapdragon * Math.PI) * 0.8;
+    const snapScale = lerp(0.5, 1.2, easeOut(pSnapdragon));
+
+    if (pSnapdragon > 0) {
+      drawSnapdragonLogo(snapTargetX, snapTargetY, snapScale, snapOpacity, snapGlow);
+    }
+
+    // Light sweep for Snapdragon
+    if (pSnapdragon > 0.3 && pSnapdragon < 0.9) {
+      drawLightSweep((pSnapdragon - 0.3) / 0.6, '228,80,30');
+    }
+
+    // ── NPU CHIP ──
+    const npuX = lerp(CX, 0, easeInOut(pNPU));
+    const npuY = CY;
+    const npuOpacity = easeOut(pNPU);
+    const circuitP = easeInOut(clamp((pNPU - 0.2) / 0.5, 0, 1));
+    const nodeP = easeInOut(clamp((pNPU - 0.5) / 0.4, 0, 1));
+
+    if (pNPU > 0) {
+      drawNPUChip(npuX, npuY, 1.2, npuOpacity, circuitP, nodeP, t);
+    }
+
+    // ── QUALCOMM AI ──
+    const aiX = CX;
+    const aiY = lerp(CY + 100, CY, easeInOut(pAI));
+    const aiOpacity = easeOut(pAI);
+
+    if (pAI > 0) {
+      drawQualcommAI(aiX, aiY, 1.2, aiOpacity, t);
+    }
+
+    // ── FINAL COMPOSITION ──
+    if (pFinal > 0) {
+      // Move all elements to final balanced positions
+      const finalWinX = -W * 0.22;
+      const finalSnapX = W * 0.22;
+      const finalNPUX = 0;
+      const finalAIY = CY - H * 0.15;
+
+      const moveProgress = easeInOut(pFinal);
+
+      // Interpolate positions
+      const currentWinX = lerp(winTargetX, finalWinX, moveProgress);
+      const currentSnapX = lerp(snapTargetX, finalSnapX, moveProgress);
+      const currentNPUX = lerp(npuX, finalNPUX, moveProgress);
+      const currentAIY = lerp(aiY, finalAIY, moveProgress);
+
+      // Redraw at final positions
+      if (moveProgress > 0 && moveProgress < 1) {
+        drawWindowsLogo(finalWinX, CY, 1.2, winOpacity, winGlow * 0.5);
+        drawSnapdragonLogo(finalSnapX, CY, 1.2, snapOpacity, snapGlow * 0.5);
+        drawNPUChip(finalNPUX, CY, 1.2, npuOpacity, circuitP, nodeP, t);
+        drawQualcommAI(CX, finalAIY, 1.2, aiOpacity, t);
+      }
+
+      // Final light sweep
+      if (pFinal > 0.2 && pFinal < 0.8) {
+        drawLightSweep((pFinal - 0.2) / 0.6, '200,220,255');
+      }
+    }
+
+    // Camera push-in effect (subtle zoom on entire scene)
+    if (pFinal > 0) {
+      const pushScale = 1 + easeIn(pFinal) * 0.03;
+      // Applied via canvas transform on next frame
+    }
+
+    // Continue or stop
+    if (t < DURATION) {
+      rafId = requestAnimationFrame(draw);
+    } else {
+      // Final frame - draw one last time with full clarity
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, W, H);
+
+      // Final composition
+      drawWindowsLogo(CX - W * 0.22, CY, 1.2, 1, 0.3);
+      drawSnapdragonLogo(CX + W * 0.22, CY, 1.2, 1, 0.3);
+      drawNPUChip(CX, CY, 1.2, 1, 1, 1, t);
+      drawQualcommAI(CX, CY - H * 0.15, 1.2, 1, t);
+    }
+  }
+
+  // Start
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, W, H);
+  rafId = requestAnimationFrame(draw);
+
+})();
+</script>
+</body>
+</html>
