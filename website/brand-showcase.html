@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Premium Technology Showcase — Windows | Snapdragon | Qualcomm | AMD</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:'Inter',system-ui,-apple-system,sans-serif;color:#fff}
+canvas{display:block;width:100vw;height:100vh}
+
+#home-menu {
+  position: fixed; inset: 0; z-index: 10;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at center, #0a0c14 0%, #000 100%);
+  transition: opacity .5s ease;
+}
+#home-menu.hidden { opacity: 0; pointer-events: none; }
+.menu-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px;
+  max-width: 900px; width: 90%; padding: 40px;
+}
+.brand-card {
+  position: relative;
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 16px;
+  padding: 40px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all .4s cubic-bezier(.4,0,.2,1);
+  overflow: hidden;
+  min-height: 180px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.brand-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: var(--card-color, #58a6ff); opacity: 0; transition: opacity .4s;
+}
+.brand-card:hover {
+  transform: translateY(-4px) scale(1.02);
+  border-color: var(--card-color, #58a6ff);
+  background: rgba(255,255,255,.05);
+  box-shadow: 0 12px 48px rgba(0,0,0,.5), 0 0 24px var(--card-glow, rgba(88,166,255,.15));
+}
+.brand-card:hover::before { opacity: 1; }
+.brand-card .card-icon { width: 64px; height: 64px; margin-bottom: 12px; transition: transform .4s; }
+.brand-card:hover .card-icon { transform: scale(1.1); }
+.brand-card .card-icon img { width: 100%; height: 100%; object-fit: contain; }
+.brand-card .card-label { font-size: 22px; font-weight: 700; letter-spacing: .04em; }
+.brand-card .card-sub { font-size: 12px; color: rgba(255,255,255,.4); margin-top: 4px; letter-spacing: .06em; text-transform: uppercase; }
+.brand-card .card-accent {
+  position: absolute; width: 60px; height: 60px; border-radius: 50%;
+  background: var(--card-glow, rgba(88,166,255,.1));
+  filter: blur(20px); opacity: 0; transition: opacity .4s;
+  top: 50%; left: 50%; transform: translate(-50%,-50%);
+}
+.brand-card:hover .card-accent { opacity: 1; }
+
+#back-btn {
+  position: fixed; top: 24px; left: 24px; z-index: 20;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 8px; color: #fff;
+  padding: 10px 20px; font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: all .3s;
+  display: flex; align-items: center; gap: 8px;
+  opacity: 0; pointer-events: none;
+}
+#back-btn.visible { opacity: 1; pointer-events: all; }
+#back-btn:hover { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.2); }
+
+#state-label {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 20;
+  font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+  color: rgba(255,255,255,.3); font-weight: 600;
+}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="home-menu">
+  <div class="menu-grid">
+    <div class="brand-card" data-brand="windows" style="--card-color:#58a6ff;--card-glow:rgba(88,166,255,.2)">
+      <div class="card-accent"></div>
+      <div class="card-icon"><img src="assets/logos/windows.svg" alt="Windows"></div>
+      <div class="card-label">Windows</div>
+      <div class="card-sub">Operating System</div>
+    </div>
+    <div class="brand-card" data-brand="snapdragon" style="--card-color:#e4002b;--card-glow:rgba(228,0,43,.2)">
+      <div class="card-accent"></div>
+      <div class="card-icon"><img src="assets/logos/snapdragon.svg" alt="Snapdragon"></div>
+      <div class="card-label">Snapdragon</div>
+      <div class="card-sub">Platform Silicon</div>
+    </div>
+    <div class="brand-card" data-brand="qualcomm" style="--card-color:#ff6b35;--card-glow:rgba(255,107,53,.2)">
+      <div class="card-accent"></div>
+      <div class="card-icon"><img src="assets/logos/qualcomm.svg" alt="Qualcomm"></div>
+      <div class="card-label">Qualcomm</div>
+      <div class="card-sub">AI & Connectivity</div>
+    </div>
+    <div class="brand-card" data-brand="amd" style="--card-color:#ed1c24;--card-glow:rgba(237,28,36,.2)">
+      <div class="card-accent"></div>
+      <div class="card-icon"><img src="assets/logos/amd.svg" alt="AMD"></div>
+      <div class="card-label">AMD</div>
+      <div class="card-sub">Compute & Graphics</div>
+    </div>
+  </div>
+</div>
+
+<button id="back-btn">&#x2190; Back to Home</button>
+<div id="state-label"></div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const homeMenu = document.getElementById('home-menu');
+  const backBtn = document.getElementById('back-btn');
+  const stateLabel = document.getElementById('state-label');
+
+  let W, H, CX, CY;
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    CX = W / 2; CY = H / 2;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  const STATE = { HOME:'home', WINDOWS:'windows', SNAPDRAGON:'snapdragon', QUALCOMM:'qualcomm', AMD:'amd' };
+  let currentState = STATE.HOME;
+  let currentAnimation = null;
+  let rafId = null;
+
+  const lerp = (a,b,t)=>a+(b-a)*t;
+  const clamp = (v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+  const easeOut = t=>1-Math.pow(1-t,3);
+  const easeInOut = t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+  const easeIn = t=>t*t*t;
+
+  // Logo image cache
+  const logoImages = {};
+  function loadLogo(src) {
+    if (logoImages[src]) return logoImages[src];
+    const img = new Image();
+    img.src = src;
+    logoImages[src] = img;
+    return img;
+  }
+
+  // ─── PARTICLE SYSTEM ───
+  class ParticleSystem {
+    constructor(){this.particles=[];}
+    clear(){this.particles=[];}
+    emit(x,y,count,config){
+      for(let i=0;i<count;i++){
+        this.particles.push({
+          x,y,
+          vx:(Math.random()-0.5)*config.spread,
+          vy:(Math.random()-0.5)*config.spread,
+          life:0,
+          maxLife:config.lifetime*(0.5+Math.random()*0.5),
+          size:config.size*(0.5+Math.random()*0.5),
+          color:config.color,
+          opacity:0,
+          decay:config.decay||0.008
+        });
+      }
+    }
+    update(dt){
+      for(let i=this.particles.length-1;i>=0;i--){
+        const p=this.particles[i];
+        p.life+=dt;
+        const t=p.life/p.maxLife;
+        if(t>=1){this.particles.splice(i,1);continue;}
+        p.opacity=t<0.15?t/0.15:1-(t-0.15)/0.85;
+        p.x+=p.vx*dt*0.06;
+        p.y+=p.vy*dt*0.06;
+        p.vx*=0.99;p.vy*=0.99;
+      }
+    }
+    draw(){
+      this.particles.forEach(p=>{
+        if(p.opacity<=0)return;
+        ctx.save();
+        ctx.globalAlpha=p.opacity*0.8;
+        ctx.fillStyle=p.color;
+        ctx.shadowColor=p.color;
+        ctx.shadowBlur=p.size*4;
+        ctx.beginPath();
+        ctx.arc(p.x,p.y,p.size,0,Math.PI*2);
+        ctx.fill();
+        ctx.restore();
+      });
+    }
+  }
+
+  // ─── ENERGY LINE SYSTEM ───
+  class EnergySystem {
+    constructor(){this.lines=[];}
+    clear(){this.lines=[];}
+    emit(x1,y1,x2,y2,color,width){
+      this.lines.push({x1,y1,x2,y2,color,width:width||1,progress:0,speed:0.01+Math.random()*0.015});
+    }
+    update(dt){
+      this.lines.forEach(l=>{l.progress+=l.speed*dt*0.06;});
+      this.lines=this.lines.filter(l=>l.progress<1);
+    }
+    draw(){
+      this.lines.forEach(l=>{
+        const p=easeOut(l.progress);
+        const ex=lerp(l.x1,l.x2,p);
+        const ey=lerp(l.y1,l.y2,p);
+        ctx.save();
+        ctx.strokeStyle=l.color;
+        ctx.lineWidth=l.width;
+        ctx.globalAlpha=0.6*(1-p);
+        ctx.shadowColor=l.color;
+        ctx.shadowBlur=8;
+        ctx.beginPath();
+        ctx.moveTo(l.x1,l.y1);
+        ctx.lineTo(ex,ey);
+        ctx.stroke();
+        ctx.restore();
+      });
+    }
+  }
+
+  // ─── NPU VISUALIZATION ───
+  class NPUVisualization {
+    constructor(){this.nodes=[];this.connections=[];this.pulses=[];this.time=0;}
+    reset(){
+      this.nodes=[];this.connections=[];this.pulses=[];
+      const gridSize=3,spacing=30;
+      for(let i=0;i<gridSize;i++){
+        for(let j=0;j<gridSize;j++){
+          this.nodes.push({x:CX+(i-1)*spacing,y:CY+(j-1)*spacing,phase:Math.random()*Math.PI*2});
+        }
+      }
+      for(let i=0;i<this.nodes.length;i++){
+        for(let j=i+1;j<this.nodes.length;j++){
+          const dx=this.nodes[j].x-this.nodes[i].x;
+          const dy=this.nodes[j].y-this.nodes[i].y;
+          const dist=Math.sqrt(dx*dx+dy*dy);
+          if(dist<spacing*1.5)this.connections.push({from:i,to:j});
+        }
+      }
+    }
+    update(dt,intensity){
+      this.time+=dt*0.001*(1+intensity);
+      if(Math.random()<intensity*0.1&&this.connections.length>0){
+        const conn=this.connections[Math.floor(Math.random()*this.connections.length)];
+        this.pulses.push({conn,progress:0,speed:0.02+Math.random()*0.02});
+      }
+      this.pulses.forEach(p=>{p.progress+=p.speed;});
+      this.pulses=this.pulses.filter(p=>p.progress<1);
+    }
+    draw(){
+      this.connections.forEach(c=>{
+        const a=this.nodes[c.from],b=this.nodes[c.to];
+        ctx.save();
+        ctx.strokeStyle='rgba(150,200,255,0.15)';
+        ctx.lineWidth=0.5;
+        ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+        ctx.restore();
+      });
+      this.nodes.forEach(n=>{
+        const pulse=0.5+Math.sin(this.time*2+n.phase)*0.5;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(n.x,n.y,2+pulse,0,Math.PI*2);
+        ctx.fillStyle=`rgba(180,230,255,${0.4+pulse*0.4})`;
+        ctx.fill();
+        ctx.restore();
+      });
+      this.pulses.forEach(p=>{
+        const a=this.nodes[p.conn.from],b=this.nodes[p.conn.to];
+        const px=lerp(a.x,b.x,easeInOut(p.progress));
+        const py=lerp(a.y,b.y,easeInOut(p.progress));
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(px,py,3,0,Math.PI*2);
+        ctx.fillStyle='rgba(255,200,150,0.8)';
+        ctx.shadowColor='rgba(255,150,80,0.5)';
+        ctx.shadowBlur=10;
+        ctx.fill();
+        ctx.restore();
+      });
+    }
+  }
+
+  // ─── ANIMATION BASE ───
+  class BrandAnimation {
+    constructor(name,duration){
+      this.name=name;
+      this.duration=duration;
+      this.startTime=0;
+      this.finished=false;
+      this.particles=new ParticleSystem();
+      this.energy=new EnergySystem();
+      this.logoImg=null;
+      this.logoX=0;this.logoY=0;this.logoScale=1;this.logoOpacity=0;this.logoGlow=0;
+      this.cameraPush=0;
+    }
+    start(now){
+      this.startTime=now;
+      this.finished=false;
+      this.logoOpacity=0;
+      this.logoGlow=0;
+      this.cameraPush=0;
+    }
+    getProgress(now){return clamp((now-this.startTime)/this.duration,0,1);}
+    update(now,dt){}
+    draw(ctx,now){}
+    reset(){
+      this.particles.clear();
+      this.energy.clear();
+      this.finished=false;
+      this.startTime=0;
+      this.logoOpacity=0;
+      this.logoGlow=0;
+      this.cameraPush=0;
+    }
+    onComplete(){this.finished=true;}
+    drawLogo(img,x,y,scale,opacity,glow){
+      if(!img||!img.complete)return;
+      const aspect=img.width/img.height;
+      const baseSize=120;
+      const w=baseSize*scale;
+      const h=w/aspect;
+      ctx.save();
+      ctx.globalAlpha=opacity;
+      ctx.shadowColor=`rgba(255,255,255,${glow*0.3})`;
+      ctx.shadowBlur=40*glow;
+      ctx.drawImage(img,x-w/2,y-h/2,w,h);
+      ctx.restore();
+    }
+    drawLightSweep(progress,cx,cy,color){
+      if(progress<=0||progress>=1)return;
+      const sx=lerp(cx-200,cx+200,progress);
+      const grad=ctx.createLinearGradient(sx-50,cy-80,sx+50,cy+80);
+      grad.addColorStop(0,`rgba(${color},0)`);
+      grad.addColorStop(0.5,`rgba(${color},0.2)`);
+      grad.addColorStop(1,`rgba(${color},0)`);
+      ctx.fillStyle=grad;
+      ctx.fillRect(sx-50,cy-80,100,160);
+    }
+  }
+
+  // ─── WINDOWS ANIMATION ───
+  class WindowsAnimation extends BrandAnimation {
+    constructor(){
+      super('windows',5000);
+      this.logoImg=loadLogo('assets/logos/windows.svg');
+      this.panes=null;
+      this.sweepProgress=0;
+      this.particleTimer=0;
+    }
+    start(now){
+      super.start(now);
+      this.panes=[
+        {x:CX-22,y:CY-22,revealed:0,delay:0.1},
+        {x:CX+22,y:CY-22,revealed:0,delay:0.2},
+        {x:CX-22,y:CY+22,revealed:0,delay:0.3},
+        {x:CX+22,y:CY+22,revealed:0,delay:0.4},
+      ];
+    }
+    update(now,dt){
+      const p=this.getProgress(now);
+      this.panes.forEach(pane=>{
+        const paneP=easeOut(clamp((p-pane.delay)/0.3,0,1));
+        pane.revealed=paneP;
+      });
+      if(p>0.05&&p<0.5){
+        this.particleTimer+=dt;
+        if(this.particleTimer>50){
+          this.particleTimer=0;
+          this.particles.emit(CX,CY,2,{spread:3,lifetime:1500,size:1.5,color:'#58a6ff'});
+        }
+      }
+      if(p>0.65&&p<0.85)this.sweepProgress=(p-0.65)/0.2;
+      this.logoOpacity=easeOut(clamp((p-0.1)/0.5,0,1));
+      this.logoGlow=Math.sin(p*Math.PI)*0.6;
+      this.cameraPush=easeIn(clamp((p-0.7)/0.3,0,1))*0.02;
+      if(p>=1)this.onComplete();
+    }
+    draw(ctx,now){
+      const p=this.getProgress(now);
+      if(p<=0)return;
+      this.particles.update(16);
+      this.particles.draw();
+      const scale=1+this.cameraPush;
+      this.drawLogo(this.logoImg,CX,CY,scale,this.logoOpacity,this.logoGlow);
+      if(this.sweepProgress>0&&this.sweepProgress<1)this.drawLightSweep(this.sweepProgress,CX,CY,'88,166,255');
+      if(p>0.8){
+        const glowAlpha=(p-0.8)/0.2;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(CX,CY,80,0,Math.PI*2);
+        const g=ctx.createRadialGradient(CX,CY,20,CX,CY,80);
+        g.addColorStop(0,`rgba(88,166,255,${0.15*glowAlpha})`);
+        g.addColorStop(1,'rgba(88,166,255,0)');
+        ctx.fillStyle=g;
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+    reset(){super.reset();this.panes=null;this.sweepProgress=0;this.particleTimer=0;}
+  }
+
+  // ─── SNAPDRAGON ANIMATION ───
+  class SnapdragonAnimation extends BrandAnimation {
+    constructor(){
+      super('snapdragon',5000);
+      this.logoImg=loadLogo('assets/logos/snapdragon.svg');
+      this.npu=new NPUVisualization();
+      this.particleTimer=0;
+      this.energyTimer=0;
+    }
+    start(now){super.start(now);this.npu.reset();}
+    update(now,dt){
+      const p=this.getProgress(now);
+      if(p>0.05&&p<0.5){
+        this.particleTimer+=dt;
+        if(this.particleTimer>40){
+          this.particleTimer=0;
+          this.particles.emit(CX,CY,3,{spread:4,lifetime:1200,size:1.5,color:'#e4002b'});
+          this.particles.emit(CX,CY,2,{spread:3,lifetime:1000,size:1,color:'#ff6b35'});
+        }
+      }
+      if(p>0.5)this.npu.update(dt,(p-0.5)*2);
+      if(p>0.7){
+        this.energyTimer+=dt;
+        if(this.energyTimer>80){
+          this.energyTimer=0;
+          const angle=Math.random()*Math.PI*2;
+          this.energy.emit(CX+Math.cos(angle)*100,CY+Math.sin(angle)*100,CX+Math.cos(angle)*30,CY+Math.sin(angle)*30,'#e4002b',1.5);
+        }
+      }
+      this.logoOpacity=easeOut(clamp((p-0.15)/0.5,0,1));
+      this.logoGlow=Math.sin(p*Math.PI)*0.7;
+      this.cameraPush=easeIn(clamp((p-0.7)/0.3,0,1))*0.03;
+      if(p>=1)this.onComplete();
+    }
+    draw(ctx,now){
+      const p=this.getProgress(now);
+      if(p<=0)return;
+      this.particles.update(16);
+      this.particles.draw();
+      this.energy.update(16);
+      this.energy.draw();
+      const scale=1+this.cameraPush;
+      this.drawLogo(this.logoImg,CX,CY,scale,this.logoOpacity,this.logoGlow);
+      if(p>0.5)this.npu.draw();
+      if(p>0.8){
+        const glowAlpha=(p-0.8)/0.2;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(CX,CY,100,0,Math.PI*2);
+        const g=ctx.createRadialGradient(CX,CY,20,CX,CY,100);
+        g.addColorStop(0,`rgba(228,0,43,${0.12*glowAlpha})`);
+        g.addColorStop(1,'rgba(228,0,43,0)');
+        ctx.fillStyle=g;
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+    reset(){super.reset();}
+  }
+
+  // ─── QUALCOMM ANIMATION ───
+  class QualcommAnimation extends BrandAnimation {
+    constructor(){
+      super('qualcomm',5000);
+      this.logoImg=loadLogo('assets/logos/qualcomm.svg');
+      this.orbitingDots=[];
+      this.particleTimer=0;
+    }
+    start(now){
+      super.start(now);
+      this.orbitingDots=[];
+      for(let i=0;i<8;i++){
+        this.orbitingDots.push({angle:(i/8)*Math.PI*2,radius:60+Math.random()*40,speed:0.5+Math.random()*0.5,size:2+Math.random()*2});
+      }
+    }
+    update(now,dt){
+      const p=this.getProgress(now);
+      this.orbitingDots.forEach(d=>{
+        d.angle+=d.speed*0.02*dt*0.06;
+        if(p>0.6)d.radius=lerp(d.radius,30,0.02);
+      });
+      if(p>0.05&&p<0.5){
+        this.particleTimer+=dt;
+        if(this.particleTimer>50){
+          this.particleTimer=0;
+          this.particles.emit(CX,CY,2,{spread:3,lifetime:1200,size:1.5,color:'#ff6b35'});
+        }
+      }
+      if(p>0.3&&p<0.6&&Math.random()<0.15){
+        const a1=Math.random()*Math.PI*2;
+        const a2=Math.random()*Math.PI*2;
+        this.energy.emit(CX+Math.cos(a1)*80,CY+Math.sin(a1)*80,CX+Math.cos(a2)*80,CY+Math.sin(a2)*80,'#ff6b35',1);
+      }
+      this.logoOpacity=easeOut(clamp((p-0.2)/0.4,0,1));
+      this.logoGlow=Math.sin(p*Math.PI)*0.6;
+      this.cameraPush=easeIn(clamp((p-0.7)/0.3,0,1))*0.02;
+      if(p>=1)this.onComplete();
+    }
+    draw(ctx,now){
+      const p=this.getProgress(now);
+      if(p<=0)return;
+      this.particles.update(16);
+      this.particles.draw();
+      this.energy.update(16);
+      this.energy.draw();
+      const revealP=easeOut(clamp((p-0.2)/0.4,0,1));
+      this.orbitingDots.forEach(d=>{
+        const dx=CX+Math.cos(d.angle)*d.radius*revealP;
+        const dy=CY+Math.sin(d.angle)*d.radius*revealP;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(dx,dy,d.size,0,Math.PI*2);
+        ctx.fillStyle=`rgba(255,107,53,${0.6*revealP})`;
+        ctx.shadowColor='rgba(255,107,53,0.4)';
+        ctx.shadowBlur=8;
+        ctx.fill();
+        ctx.restore();
+      });
+      const scale=1+this.cameraPush;
+      this.drawLogo(this.logoImg,CX,CY,scale,this.logoOpacity,this.logoGlow);
+      if(p>0.7&&p<0.85)this.drawLightSweep((p-0.7)/0.15,CX,CY,'255,107,53');
+      if(p>0.8){
+        const glowAlpha=(p-0.8)/0.2;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(CX,CY,90,0,Math.PI*2);
+        const g=ctx.createRadialGradient(CX,CY,20,CX,CY,90);
+        g.addColorStop(0,`rgba(255,107,53,${0.12*glowAlpha})`);
+        g.addColorStop(1,'rgba(255,107,53,0)');
+        ctx.fillStyle=g;
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+    reset(){super.reset();this.orbitingDots=[];this.particleTimer=0;}
+  }
+
+  // ─── AMD ANIMATION ───
+  class AMDAnimation extends BrandAnimation {
+    constructor(){
+      super('amd',5000);
+      this.logoImg=loadLogo('assets/logos/amd.svg');
+      this.particleTimer=0;
+    }
+    update(now,dt){
+      const p=this.getProgress(now);
+      if(p>0.05&&p<0.5){
+        this.particleTimer+=dt;
+        if(this.particleTimer>60){
+          this.particleTimer=0;
+          this.particles.emit(CX,CY,2,{spread:3,lifetime:1000,size:1.5,color:'#ed1c24'});
+        }
+      }
+      if(p>0.3&&p<0.6&&Math.random()<0.1){
+        this.energy.emit(CX-80,CY-80,CX+80,CY+80,'#ed1c24',1);
+        this.energy.emit(CX+80,CY-80,CX-80,CY+80,'#ff6b35',1);
+      }
+      this.logoOpacity=easeOut(clamp((p-0.15)/0.4,0,1));
+      this.logoGlow=Math.sin(p*Math.PI)*0.5;
+      this.cameraPush=easeIn(clamp((p-0.7)/0.3,0,1))*0.02;
+      if(p>=1)this.onComplete();
+    }
+    draw(ctx,now){
+      const p=this.getProgress(now);
+      if(p<=0)return;
+      this.particles.update(16);
+      this.particles.draw();
+      this.energy.update(16);
+      this.energy.draw();
+      const scale=1+this.cameraPush;
+      this.drawLogo(this.logoImg,CX,CY,scale,this.logoOpacity,this.logoGlow);
+      if(p>0.7&&p<0.85)this.drawLightSweep((p-0.7)/0.15,CX,CY,'237,28,36');
+      if(p>0.8){
+        const glowAlpha=(p-0.8)/0.2;
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(CX,CY,90,0,Math.PI*2);
+        const g=ctx.createRadialGradient(CX,CY,20,CX,CY,90);
+        g.addColorStop(0,`rgba(237,28,36,${0.12*glowAlpha})`);
+        g.addColorStop(1,'rgba(237,28,36,0)');
+        ctx.fillStyle=g;
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+    reset(){super.reset();this.particleTimer=0;}
+  }
+
+  // ─── ANIMATION FACTORY ───
+  const animations={
+    windows:()=>new WindowsAnimation(),
+    snapdragon:()=>new SnapdragonAnimation(),
+    qualcomm:()=>new QualcommAnimation(),
+    amd:()=>new AMDAnimation(),
+  };
+
+  // ─── NAVIGATION ───
+  function transitionTo(brand){
+    if(currentAnimation){currentAnimation.reset();currentAnimation=null;}
+    currentState=STATE[brand.toUpperCase()]||STATE.HOME;
+    homeMenu.classList.add('hidden');
+    backBtn.classList.add('visible');
+    stateLabel.textContent=brand.charAt(0).toUpperCase()+brand.slice(1);
+    currentAnimation=animations[brand]();
+    currentAnimation.start(performance.now());
+  }
+
+  function goHome(){
+    if(currentAnimation){currentAnimation.reset();currentAnimation=null;}
+    currentState=STATE.HOME;
+    homeMenu.classList.remove('hidden');
+    backBtn.classList.remove('visible');
+    stateLabel.textContent='';
+  }
+
+  document.querySelectorAll('.brand-card').forEach(card=>{
+    card.addEventListener('click',()=>{transitionTo(card.dataset.brand);});
+  });
+  backBtn.addEventListener('click',goHome);
+
+  // ─── MAIN LOOP ───
+  let lastTime=performance.now();
+  function loop(now){
+    const dt=Math.min(50,now-lastTime);
+    lastTime=now;
+    ctx.fillStyle='rgba(0,0,0,0.2)';
+    ctx.fillRect(0,0,W,H);
+    if(currentAnimation){
+      currentAnimation.update(now,dt);
+      currentAnimation.draw(ctx,now);
+    }
+    rafId=requestAnimationFrame(loop);
+  }
+
+  ctx.fillStyle='#000';
+  ctx.fillRect(0,0,W,H);
+  rafId=requestAnimationFrame(loop);
+
+})();
+</script>
+</body>
+</html>
